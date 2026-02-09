@@ -1,5 +1,4 @@
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
-@import "react-bootstrap-multiselect/css/bootstrap-multiselect.css";
 @import "sweetalert2/dist/sweetalert2.min.css";
 
 @font-face {
@@ -1533,7 +1532,92 @@ h1 {
   gap: 20px;
   padding: 32px;
   width: 100%;
-  max-width: 380px;
+  max-width: 320px;
+}
+
+.multi-select {
+  position: relative;
+  width: 100%;
+}
+
+.multi-select-button {
+  width: 100%;
+  border: 1px solid rgba(17, 17, 17, 0.2);
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.multi-select-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.multi-select-caret {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.multi-select-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 16px;
+  padding: 12px;
+  z-index: 50;
+  box-shadow: 0 14px 30px rgba(17, 17, 17, 0.08);
+  overflow: hidden;
+}
+
+.multi-select-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.multi-select-search {
+  width: 100%;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.multi-select-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.multi-select-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.multi-select-item input[type=\"checkbox\"] {
+  width: 16px;
+  height: 16px;
+}
+
+.multi-select-empty {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  padding: 6px 0;
 }
 
 @media (max-width: 960px) {

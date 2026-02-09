@@ -8,7 +8,7 @@ import { useAuth } from "../auth";
 import { useDashboard } from "../dashboard";
 import { emitToast } from "../toast";
 import Swal from "sweetalert2";
-import Multiselect from "react-bootstrap-multiselect";
+import { MultiSelectDropdown } from "../components/MultiSelectDropdown";
 import type {
   ApiKeySummary,
   AuditEvent,
@@ -271,31 +271,11 @@ export function ClientSummaryPage() {
     [pricing, pricingSelection],
   );
 
-  const handlePricingChange = (option: any, checked: boolean) => {
+  const handlePricingSelectionChange = (next: string[]) => {
     if (!canManagePricing) {
       return;
     }
-    if (!option || typeof option.val !== "function") {
-      return;
-    }
-    const value = option.val();
-    const values = Array.isArray(value) ? value : [value];
-    setPricingSelection((prev) => {
-      let next = [...prev];
-      values.forEach((val) => {
-        if (!val) {
-          return;
-        }
-        if (checked) {
-          if (!next.includes(val)) {
-            next.push(val);
-          }
-        } else {
-          next = next.filter((id) => id !== val);
-        }
-      });
-      return next;
-    });
+    setPricingSelection(next);
   };
 
   useEffect(() => {
@@ -1530,33 +1510,13 @@ export function ClientSummaryPage() {
           ) : (
             <div className="form-grid">
               <div className="multiselect-wrapper">
-                <Multiselect
-                  data={pricingOptions}
-                  multiple
-                  includeSelectAllOption
-                  enableFiltering
-                  enableCaseInsensitiveFiltering
-                  maxHeight={260}
-                  buttonWidth="100%"
+                <MultiSelectDropdown
+                  options={pricingOptions}
+                  selected={pricingSelection}
                   disabled={!canManagePricing}
-                  nonSelectedText="Selecciona pricing"
-                  allSelectedText="Todos"
-                  nSelectedText="seleccionados"
-                  onChange={handlePricingChange}
-                  onSelectAll={() =>
-                    setPricingSelection(pricing.map((entry) => entry.id))
-                  }
-                  onDeselectAll={() => setPricingSelection([])}
-                  buttonText={(options: any) => {
-                    const count = options?.length || 0;
-                    if (count === 0) {
-                      return "Selecciona pricing";
-                    }
-                    if (count === pricingOptions.length) {
-                      return `Todos (${count})`;
-                    }
-                    return `${count} seleccionados`;
-                  }}
+                  placeholder="Selecciona pricing"
+                  maxHeight={260}
+                  onChange={handlePricingSelectionChange}
                 />
               </div>
               {canManagePricing && (
