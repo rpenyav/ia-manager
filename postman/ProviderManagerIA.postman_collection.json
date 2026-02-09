@@ -1,0 +1,1025 @@
+{
+  "info": {
+    "name": "Provider Manager IA",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "jwt",
+      "value": ""
+    },
+    {
+      "key": "apiKey",
+      "value": ""
+    },
+    {
+      "key": "tenantId",
+      "value": ""
+    },
+    {
+      "key": "providerId",
+      "value": ""
+    },
+    {
+      "key": "pricingId",
+      "value": ""
+    },
+    {
+      "key": "webhookId",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "docId",
+      "value": ""
+    },
+    {
+      "key": "chatToken",
+      "value": ""
+    },
+    {
+      "key": "conversationId",
+      "value": ""
+    },
+    {
+      "key": "chatUserId",
+      "value": ""
+    },
+    {
+      "key": "adminUserId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/token",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "token"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clientId\": \"admin\",\n  \"clientSecret\": \"change_me\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create API Key",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/api-keys",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "api-keys"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"backoffice\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Seed Demo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/seed/demo",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "seed",
+            "demo"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Alert Schedule",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/settings/alerts-schedule",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "settings",
+            "alerts-schedule"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Alert Schedule",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/settings/alerts-schedule",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "settings",
+            "alerts-schedule"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cron\": \"*/10 * * * *\",\n  \"minIntervalMinutes\": 10\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Tenant",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tenants",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tenants"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Acme\"\n}"
+        }
+      }
+    },
+    {
+      "name": "List Docs (by slug)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/docs?menuSlug=pricing&enabled=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "docs"
+          ],
+          "query": [
+            {
+              "key": "menuSlug",
+              "value": "pricing"
+            },
+            {
+              "key": "enabled",
+              "value": "true"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Search Docs",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/docs?q=coste&enabled=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "docs"
+          ],
+          "query": [
+            {
+              "key": "q",
+              "value": "coste"
+            },
+            {
+              "key": "enabled",
+              "value": "true"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Doc By Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/docs/{{docId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "docs",
+            "{{docId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Doc Entry",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/docs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "docs"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"menuSlug\": \"pricing\",\n  \"category\": \"costing\",\n  \"title\": \"Cómo definir tarifas\",\n  \"content\": \"Usa costes por 1k tokens y activa solo los modelos en producción.\",\n  \"link\": \"https://example.com/docs/pricing\",\n  \"orderIndex\": 1,\n  \"enabled\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "Update Doc Entry",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/docs/{{docId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "docs",
+            "{{docId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Cómo definir tarifas (actualizado)\",\n  \"enabled\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "Delete Doc Entry",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/docs/{{docId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "docs",
+            "{{docId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Chat Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-tenant-id",
+            "value": "{{tenantId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/chat/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "chat",
+            "auth",
+            "register"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@cliente.com\",\n  \"password\": \"changeme123\",\n  \"name\": \"Usuario Demo\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Chat Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-tenant-id",
+            "value": "{{tenantId}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/chat/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "chat",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@cliente.com\",\n  \"password\": \"changeme123\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Chat List Conversations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-tenant-id",
+            "value": "{{tenantId}}"
+          },
+          {
+            "key": "x-chat-token",
+            "value": "{{chatToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/chat/conversations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "chat",
+            "conversations"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Chat Create Conversation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-tenant-id",
+            "value": "{{tenantId}}"
+          },
+          {
+            "key": "x-chat-token",
+            "value": "{{chatToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/chat/conversations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "chat",
+            "conversations"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"model\": \"gpt-4o-mini\",\n  \"title\": \"Primera conversación\",\n  \"systemPrompt\": \"Eres un asistente útil\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Chat List Messages",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-tenant-id",
+            "value": "{{tenantId}}"
+          },
+          {
+            "key": "x-chat-token",
+            "value": "{{chatToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/chat/conversations/{{conversationId}}/messages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "chat",
+            "conversations",
+            "{{conversationId}}",
+            "messages"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Chat Add Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}"
+          },
+          {
+            "key": "x-tenant-id",
+            "value": "{{tenantId}}"
+          },
+          {
+            "key": "x-chat-token",
+            "value": "{{chatToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/chat/conversations/{{conversationId}}/messages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "chat",
+            "conversations",
+            "{{conversationId}}",
+            "messages"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Hola, ¿me ayudas con mi pedido?\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Admin List Chat Users",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tenants/{{tenantId}}/chat/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tenants",
+            "{{tenantId}}",
+            "chat",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin Create Chat User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tenants/{{tenantId}}/chat/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tenants",
+            "{{tenantId}}",
+            "chat",
+            "users"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@cliente.com\",\n  \"password\": \"changeme123\",\n  \"name\": \"Usuario Demo\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Admin Update Chat User",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tenants/{{tenantId}}/chat/users/{{chatUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tenants",
+            "{{tenantId}}",
+            "chat",
+            "users",
+            "{{chatUserId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"disabled\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Admin List Chat Conversations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tenants/{{tenantId}}/chat/conversations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tenants",
+            "{{tenantId}}",
+            "chat",
+            "conversations"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin List Chat Messages",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tenants/{{tenantId}}/chat/conversations/{{conversationId}}/messages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tenants",
+            "{{tenantId}}",
+            "chat",
+            "conversations",
+            "{{conversationId}}",
+            "messages"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin Delete Chat Conversation",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tenants/{{tenantId}}/chat/conversations/{{conversationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tenants",
+            "{{tenantId}}",
+            "chat",
+            "conversations",
+            "{{conversationId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/profile",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "profile"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Profile",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/profile",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "profile"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Admin\"\n}"
+        }
+      }
+    },
+    {
+      "name": "List Admin Users",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Admin User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "users"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"editor\",\n  \"name\": \"Editor\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Update Admin User",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/users/{{adminUserId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "users",
+            "{{adminUserId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"disabled\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Auth Login (Admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"changeme123\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Auth Session",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/session",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "session"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Profile Password",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/profile",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "profile"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"password\": \"Nueva1234\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Forgot Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/forgot-password",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "forgot-password"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"admin\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/reset-password",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "reset-password"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"<token>\",\n  \"password\": \"Nueva1234\"\n}"
+        }
+      }
+    }
+  ]
+}
