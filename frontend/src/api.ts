@@ -2,7 +2,10 @@ const fallbackBaseUrl =
   import.meta.env.MODE === 'production'
     ? 'https://backend-production-fc6a.up.railway.app'
     : 'http://localhost:3000';
-const baseUrl = import.meta.env.VITE_API_BASE_URL || fallbackBaseUrl;
+let baseUrl = import.meta.env.VITE_API_BASE_URL || fallbackBaseUrl;
+if (import.meta.env.MODE === 'production' && baseUrl.includes('localhost')) {
+  baseUrl = 'https://backend-production-fc6a.up.railway.app';
+}
 const apiKey = import.meta.env.VITE_API_KEY || '';
 const authTokenFallback = import.meta.env.VITE_AUTH_TOKEN || '';
 const refreshClientId = import.meta.env.VITE_AUTH_CLIENT_ID || '';
