@@ -12,9 +12,9 @@ RUN npm run build
 FROM node:18-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8080
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./package.json
-EXPOSE 3000
+EXPOSE 8080
 CMD ["sh", "-c", "APP_PORT=${PORT:-3000} node dist/main.js"]
