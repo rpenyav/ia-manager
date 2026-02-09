@@ -26,13 +26,15 @@ import { SubscriptionService } from './common/entities/subscription-service.enti
 import { SubscriptionHistory } from './common/entities/subscription-history.entity';
 import { SubscriptionPaymentRequest } from './common/entities/subscription-payment-request.entity';
 
+const stripQuotes = (value?: string) => (value ? value.replace(/^['"]|['"]$/g, '') : value);
+
 export default new DataSource({
   type: 'mysql',
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT || 3306),
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host: stripQuotes(process.env.DB_HOST),
+  port: Number(stripQuotes(process.env.DB_PORT) || 3306),
+  username: stripQuotes(process.env.DB_USER),
+  password: stripQuotes(process.env.DB_PASSWORD),
+  database: stripQuotes(process.env.DB_NAME),
   entities: [
     Tenant,
     Provider,

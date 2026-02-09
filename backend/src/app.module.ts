@@ -55,6 +55,8 @@ import { ChatModule } from './chat/chat.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ServiceCatalogModule } from './service-catalog/service-catalog.module';
 
+const stripQuotes = (value?: string) => (value ? value.replace(/^['"]|['"]$/g, '') : value);
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -85,12 +87,12 @@ import { ServiceCatalogModule } from './service-catalog/service-catalog.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'mysql',
-        host: config.get<string>('DB_HOST'),
-        port: Number(config.get<string>('DB_PORT') || 3306),
-        username: config.get<string>('DB_USER'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_NAME'),
-        ssl: config.get<string>('DB_SSL') === 'true',
+        host: stripQuotes(config.get<string>('DB_HOST')),
+        port: Number(stripQuotes(config.get<string>('DB_PORT')) || 3306),
+        username: stripQuotes(config.get<string>('DB_USER')),
+        password: stripQuotes(config.get<string>('DB_PASSWORD')),
+        database: stripQuotes(config.get<string>('DB_NAME')),
+        ssl: stripQuotes(config.get<string>('DB_SSL')) === 'true',
         entities: [
           Tenant,
           Provider,
