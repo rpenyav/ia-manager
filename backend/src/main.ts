@@ -10,6 +10,12 @@ async function bootstrap() {
     .map((item) => item.trim())
     .filter(Boolean)
     .map((item) => item.replace(/^['"]|['"]$/g, ''));
+  const port = Number(process.env.APP_PORT || 3000);
+  // Log to help debug Railway env/runtime
+  // eslint-disable-next-line no-console
+  console.log('[startup] APP_PORT =', port);
+  // eslint-disable-next-line no-console
+  console.log('[startup] CORS_ORIGINS =', origins);
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) {
@@ -31,7 +37,6 @@ async function bootstrap() {
     })
   );
 
-  const port = Number(process.env.APP_PORT || 3000);
   await app.listen(port);
 }
 
