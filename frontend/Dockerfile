@@ -12,6 +12,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_API_KEY=$VITE_API_KEY
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN if [ -f .env.production ]; then cp .env.production .env; fi
 RUN npm run build
 
 FROM nginx:alpine AS runner
