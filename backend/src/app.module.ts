@@ -85,43 +85,51 @@ const stripQuotes = (value?: string) => (value ? value.replace(/^['"]|['"]$/g, '
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'mysql',
-        host: stripQuotes(config.get<string>('DB_HOST')),
-        port: Number(stripQuotes(config.get<string>('DB_PORT')) || 3306),
-        username: stripQuotes(config.get<string>('DB_USER')),
-        password: stripQuotes(config.get<string>('DB_PASSWORD')),
-        database: stripQuotes(config.get<string>('DB_NAME')),
-        ssl: stripQuotes(config.get<string>('DB_SSL')) === 'true',
-        entities: [
-          Tenant,
-          Provider,
-          Policy,
-          UsageEvent,
-          AuditEvent,
-          ApiKey,
-          SystemSetting,
-          PricingModel,
-          Webhook,
-          NotificationChannel,
-          DocumentationEntry,
-          OcrDocument,
-          DbConnection,
-          TenantService,
-          TenantPricing,
-          ChatUser,
-          ChatConversation,
-          ChatMessage,
-          AdminUser,
-          AdminPasswordReset,
-          ServiceCatalog,
-          Subscription,
-          SubscriptionService,
-          SubscriptionHistory,
-          SubscriptionPaymentRequest
-        ],
-        synchronize: false
-      })
+      useFactory: (config: ConfigService) => {
+        const rawHost = config.get<string>('DB_HOST');
+        const rawPort = config.get<string>('DB_PORT');
+        const rawUser = config.get<string>('DB_USER');
+        const rawDb = config.get<string>('DB_NAME');
+        // eslint-disable-next-line no-console
+        console.log('[startup] DB_HOST=', rawHost, 'DB_PORT=', rawPort, 'DB_USER=', rawUser, 'DB_NAME=', rawDb);
+        return {
+          type: 'mysql',
+          host: stripQuotes(rawHost),
+          port: Number(stripQuotes(rawPort) || 3306),
+          username: stripQuotes(rawUser),
+          password: stripQuotes(config.get<string>('DB_PASSWORD')),
+          database: stripQuotes(rawDb),
+          ssl: stripQuotes(config.get<string>('DB_SSL')) === 'true',
+          entities: [
+            Tenant,
+            Provider,
+            Policy,
+            UsageEvent,
+            AuditEvent,
+            ApiKey,
+            SystemSetting,
+            PricingModel,
+            Webhook,
+            NotificationChannel,
+            DocumentationEntry,
+            OcrDocument,
+            DbConnection,
+            TenantService,
+            TenantPricing,
+            ChatUser,
+            ChatConversation,
+            ChatMessage,
+            AdminUser,
+            AdminPasswordReset,
+            ServiceCatalog,
+            Subscription,
+            SubscriptionService,
+            SubscriptionHistory,
+            SubscriptionPaymentRequest
+          ],
+          synchronize: false
+        };
+      }
     }),
     AuthModule,
     TenantsModule,
