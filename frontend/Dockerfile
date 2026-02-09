@@ -2,7 +2,7 @@ FROM node:18-bullseye-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 ENV npm_config_optional=true
-RUN npm install --include=optional
+RUN rm -f package-lock.json && npm install --include=optional
 
 FROM node:18-bullseye-slim AS build
 WORKDIR /app
