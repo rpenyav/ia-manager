@@ -1,4 +1,8 @@
-const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const fallbackBaseUrl =
+  import.meta.env.MODE === 'production'
+    ? 'https://backend-production-fc6a.up.railway.app'
+    : 'http://localhost:3000';
+const baseUrl = import.meta.env.VITE_API_BASE_URL || fallbackBaseUrl;
 const apiKey = import.meta.env.VITE_API_KEY || '';
 const authTokenFallback = import.meta.env.VITE_AUTH_TOKEN || '';
 const refreshClientId = import.meta.env.VITE_AUTH_CLIENT_ID || '';

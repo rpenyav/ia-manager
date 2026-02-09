@@ -53,7 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const login = async (username: string, password: string) => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+    const baseUrl =
+      import.meta.env.VITE_API_BASE_URL ||
+      (import.meta.env.MODE === 'production'
+        ? 'https://backend-production-fc6a.up.railway.app'
+        : 'http://localhost:3000');
     const response = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -72,7 +76,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+    const baseUrl =
+      import.meta.env.VITE_API_BASE_URL ||
+      (import.meta.env.MODE === 'production'
+        ? 'https://backend-production-fc6a.up.railway.app'
+        : 'http://localhost:3000');
     fetch(`${baseUrl}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => undefined);
     cookie.clear('pm_auth_user');
     cookie.clear('pm_auth_name');
@@ -87,7 +95,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshSession = async (force = false) => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+    const baseUrl =
+      import.meta.env.VITE_API_BASE_URL ||
+      (import.meta.env.MODE === 'production'
+        ? 'https://backend-production-fc6a.up.railway.app'
+        : 'http://localhost:3000');
     setLoading(true);
     try {
       const isAuthRoute =
