@@ -8,6 +8,7 @@ if (import.meta.env.MODE === "production" && baseUrl.includes("localhost")) {
 }
 const apiKey = import.meta.env.VITE_API_KEY || "";
 const authTokenFallback = import.meta.env.VITE_AUTH_TOKEN || "";
+const AUTH_TOKEN_KEY = "pm_auth_token";
 const refreshClientId = import.meta.env.VITE_AUTH_CLIENT_ID || "";
 const refreshClientSecret = import.meta.env.VITE_AUTH_CLIENT_SECRET || "";
 
@@ -28,7 +29,27 @@ const clearCookie = (name: string) => {
   document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
 };
 
-const getStoredToken = () => authTokenFallback || "";
+const getStoredToken = () => {
+  if (typeof window === "undefined") {
+    return authTokenFallback || "";
+  }
+  const stored = window.localStorage?.getItem(AUTH_TOKEN_KEY);
+  return stored || authTokenFallback || "";
+};
+
+const setStoredToken = (token: string) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage?.setItem(AUTH_TOKEN_KEY, token);
+};
+
+const clearStoredToken = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage?.removeItem(AUTH_TOKEN_KEY);
+};
 
 async function refreshToken() {
   if (!canRefresh) {
@@ -49,6 +70,9 @@ async function refreshToken() {
   }
 
   const data = (await response.json()) as { accessToken: string };
+  if (data?.accessToken) {
+    setStoredToken(data.accessToken);
+  }
   return data.accessToken;
 }
 
@@ -80,6 +104,7 @@ async function requestJson<T>(
       const { emitToast } = await import("./toast");
       emitToast("Sesión expirada. Inicia sesión de nuevo.", "error");
       clearCookie("pm_auth_user");
+      clearStoredToken();
       fetch(`${baseUrl}/auth/logout`, {
         method: "POST",
         credentials: "include",

@@ -16,6 +16,8 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const AUTH_TOKEN_KEY = 'pm_auth_token';
+
 const cookie = {
   get: (name: string) => {
     if (typeof document === 'undefined') {
@@ -40,6 +42,27 @@ const cookie = {
       return;
     }
     document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+  }
+};
+
+const tokenStorage = {
+  get: () => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    return window.localStorage?.getItem(AUTH_TOKEN_KEY);
+  },
+  set: (value: string) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage?.setItem(AUTH_TOKEN_KEY, value);
+  },
+  clear: () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage?.removeItem(AUTH_TOKEN_KEY);
   }
 };
 
@@ -73,8 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(text || 'Credenciales inválidas');
     }
 
-    const data = (await response.json()) as { mustChangePassword?: boolean };
+    const data = (await response.json()) as { mustChangePassword?: boolean; accessToken?: string };
     setMustChangePassword(Boolean(data.mustChangePassword));
+    if (data.accessToken) {
+      tokenStorage.set(data.accessToken);
+      setToken(data.accessToken);
+    }
     await refreshSession(true);
   };
 
@@ -91,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     cookie.clear('pm_auth_user');
     cookie.clear('pm_auth_name');
     cookie.clear('pm_auth_tenant');
+    tokenStorage.clear();
     setToken(null);
     setUser(null);
     setName(null);
@@ -126,11 +154,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         return;
       }
+      const storedToken = tokenStorage.get();
       const response = await fetch(`${baseUrl}/auth/session`, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined
       });
       if (!response.ok) {
+        tokenStorage.clear();
         setToken(null);
         setUser(null);
         setLoading(false);
@@ -144,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         mustChangePassword?: boolean;
         tenantId?: string | null;
       };
-      setToken('cookie');
+      setToken(storedToken || 'cookie');
       setUser(data.user);
       setName(data.name ?? null);
       setTenantId(data.tenantId ?? null);
@@ -160,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setRole(data.role ?? null);
       setMustChangePassword(Boolean(data.mustChangePassword));
     } catch {
+      tokenStorage.clear();
       setToken(null);
       setUser(null);
       setName(null);
