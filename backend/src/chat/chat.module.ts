@@ -11,11 +11,13 @@ import { ChatConversation } from '../common/entities/chat-conversation.entity';
 import { ChatMessage } from '../common/entities/chat-message.entity';
 import { ChatUser } from '../common/entities/chat-user.entity';
 import { RuntimeModule } from '../runtime/runtime.module';
+import { TenantServicesModule } from '../tenant-services/tenant-services.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ChatUser, ChatConversation, ChatMessage]),
     RuntimeModule,
+    TenantServicesModule,
     JwtModule.register({
       secret: process.env.CHAT_JWT_SECRET || process.env.AUTH_JWT_SECRET || 'replace_me',
       signOptions: { expiresIn: Number(process.env.CHAT_JWT_TTL || 7200) }

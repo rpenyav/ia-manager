@@ -21,6 +21,9 @@ import type {
   ServiceCatalogItem,
   SubscriptionSummary,
   Tenant,
+  TenantServiceEndpoint,
+  TenantServiceOverview,
+  TenantServiceUser,
   UsageEvent,
   UsageSummary,
 } from "../types";
@@ -34,6 +37,7 @@ export function ClientSummaryPage() {
   const isTenant = role === "tenant";
   const canEditTenant = role === "admin" || role === "tenant";
   const canManageChatUsers = role === "admin" || role === "tenant";
+  const canManageServices = role === "admin" || role === "tenant";
   const canManageSubscription = role === "admin" || role === "tenant";
   const canManagePricing = role === "admin";
   const canManageApiKeys = role === "admin";
@@ -113,6 +117,34 @@ export function ClientSummaryPage() {
   const [serviceCatalog, setServiceCatalog] = useState<ServiceCatalogItem[]>(
     [],
   );
+  const [tenantServices, setTenantServices] = useState<TenantServiceOverview[]>(
+    [],
+  );
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [activeService, setActiveService] =
+    useState<TenantServiceOverview | null>(null);
+  const [serviceConfigDraft, setServiceConfigDraft] = useState({
+    status: "active" as "active" | "suspended",
+    systemPrompt: "",
+  });
+  const [serviceEndpoints, setServiceEndpoints] = useState<
+    TenantServiceEndpoint[]
+  >([]);
+  const [serviceEndpointDraft, setServiceEndpointDraft] = useState({
+    id: "",
+    slug: "",
+    method: "POST",
+    path: "",
+    baseUrl: "",
+    headers: "",
+    enabled: true,
+  });
+  const [serviceEndpointMode, setServiceEndpointMode] = useState<
+    "create" | "edit"
+  >("create");
+  const [serviceUsers, setServiceUsers] = useState<TenantServiceUser[]>([]);
+  const [serviceAssignUserId, setServiceAssignUserId] = useState("");
+  const [serviceBusy, setServiceBusy] = useState(false);
   const [subscriptionSummary, setSubscriptionSummary] =
     useState<SubscriptionSummary | null>(null);
   const [subscriptionForm, setSubscriptionForm] = useState({
@@ -184,6 +216,27 @@ export function ClientSummaryPage() {
     () => serviceCatalog.filter((service) => service.enabled),
     [serviceCatalog],
   );
+  const serviceOverviewMap = useMemo(
+    () => new Map(tenantServices.map((service) => [service.serviceCode, service])),
+    [tenantServices],
+  );
+  const assignedServiceUserIds = useMemo(
+    () => new Set(serviceUsers.map((item) => item.userId)),
+    [serviceUsers],
+  );
+  const availableServiceUsers = useMemo(
+    () => chatUsers.filter((user) => !assignedServiceUserIds.has(user.id)),
+    [chatUsers, assignedServiceUserIds],
+  );
+  const serviceUserRows = useMemo(
+    () =>
+      serviceUsers.map((assignment) => ({
+        ...assignment,
+        email: assignment.user.email,
+        name: assignment.user.name || "",
+      })),
+    [serviceUsers],
+  );
   const selectedServices = useMemo(
     () =>
       visibleServices.filter((service) =>
@@ -222,6 +275,13 @@ export function ClientSummaryPage() {
           .map((item) => item.serviceCode),
       ),
     [subscriptionServices],
+  );
+  const contractedServices = useMemo(
+    () =>
+      tenantServices.filter(
+        (service) => service.subscriptionStatus !== "disabled",
+      ),
+    [tenantServices],
   );
 
   const serviceOption = useMemo(() => {
@@ -295,6 +355,7 @@ export function ClientSummaryPage() {
           audit,
           catalogList,
           subscriptionData,
+          tenantServicesList,
           pricingAssignment,
           chatUsersList,
           chatConversationsList,
@@ -309,6 +370,7 @@ export function ClientSummaryPage() {
           api.getAudit(25, tenantId),
           api.listServiceCatalog(),
           api.getTenantSubscription(tenantId),
+          api.getTenantServices(tenantId),
           api.getTenantPricing(tenantId),
           api.listChatUsers(tenantId),
           api.listChatConversations(tenantId),
@@ -334,6 +396,7 @@ export function ClientSummaryPage() {
         setUsageEvents(events);
         setAuditEvents(audit);
         setServiceCatalog(catalogList as ServiceCatalogItem[]);
+        setTenantServices(tenantServicesList as TenantServiceOverview[]);
         setSubscriptionSummary(subscriptionData as SubscriptionSummary);
         if (subscriptionData?.subscription) {
           setSubscriptionForm({
@@ -358,6 +421,284 @@ export function ClientSummaryPage() {
     };
     load();
   }, [tenantId]);
+
+  const refreshTenantServices = async (serviceCode?: string) => {
+    if (!tenantId) {
+      return;
+    }
+    const list = (await api.getTenantServices(tenantId)) as TenantServiceOverview[];
+    setTenantServices(list);
+    if (serviceCode) {
+      setActiveService(list.find((item) => item.serviceCode === serviceCode) || null);
+    }
+  };
+
+  const openServiceModal = async (service: TenantServiceOverview) => {
+    if (!tenantId) {
+      return;
+    }
+    setActiveService(service);
+    setServiceConfigDraft({
+      status: service.configStatus || "active",
+      systemPrompt: service.systemPrompt || "",
+    });
+    setServiceEndpointDraft({
+      id: "",
+      slug: "",
+      method: "POST",
+      path: "",
+      baseUrl: "",
+      headers: "",
+      enabled: true,
+    });
+    setServiceEndpointMode("create");
+    setServiceAssignUserId("");
+    setServiceModalOpen(true);
+    setServiceBusy(true);
+    try {
+      const [endpoints, users] = await Promise.all([
+        api.listTenantServiceEndpoints(tenantId, service.serviceCode),
+        api.listTenantServiceUsers(tenantId, service.serviceCode),
+      ]);
+      setServiceEndpoints(endpoints as TenantServiceEndpoint[]);
+      setServiceUsers(users as TenantServiceUser[]);
+    } catch (err: any) {
+      emitToast(err.message || "No se pudo cargar el servicio", "error");
+    } finally {
+      setServiceBusy(false);
+    }
+  };
+
+  const closeServiceModal = () => {
+    setServiceModalOpen(false);
+    setActiveService(null);
+    setServiceEndpoints([]);
+    setServiceUsers([]);
+  };
+
+  const handleSaveServiceConfig = async () => {
+    if (!tenantId || !activeService) {
+      return;
+    }
+    setServiceBusy(true);
+    try {
+      await api.updateTenantServiceConfig(tenantId, activeService.serviceCode, {
+        status: serviceConfigDraft.status,
+        systemPrompt: serviceConfigDraft.systemPrompt,
+      });
+      await refreshTenantServices(activeService.serviceCode);
+      emitToast("Configuración del servicio guardada.");
+    } catch (err: any) {
+      emitToast(err.message || "No se pudo guardar el servicio", "error");
+    } finally {
+      setServiceBusy(false);
+    }
+  };
+
+  const parseHeaders = (value: string) => {
+    if (!value.trim()) {
+      return null;
+    }
+    try {
+      return JSON.parse(value);
+    } catch (err) {
+      emitToast("Headers debe ser un JSON válido.", "error");
+      return undefined;
+    }
+  };
+
+  const handleSaveEndpoint = async () => {
+    if (!tenantId || !activeService) {
+      return;
+    }
+    const headers = parseHeaders(serviceEndpointDraft.headers);
+    if (headers === undefined) {
+      return;
+    }
+    setServiceBusy(true);
+    try {
+      if (serviceEndpointMode === "edit") {
+        await api.updateTenantServiceEndpoint(
+          tenantId,
+          activeService.serviceCode,
+          serviceEndpointDraft.id,
+          {
+            slug: serviceEndpointDraft.slug,
+            method: serviceEndpointDraft.method,
+            path: serviceEndpointDraft.path,
+            baseUrl: serviceEndpointDraft.baseUrl || null,
+            headers,
+            enabled: serviceEndpointDraft.enabled,
+          },
+        );
+      } else {
+        await api.createTenantServiceEndpoint(
+          tenantId,
+          activeService.serviceCode,
+          {
+            slug: serviceEndpointDraft.slug,
+            method: serviceEndpointDraft.method,
+            path: serviceEndpointDraft.path,
+            baseUrl: serviceEndpointDraft.baseUrl || null,
+            headers,
+            enabled: serviceEndpointDraft.enabled,
+          },
+        );
+      }
+      const endpoints = await api.listTenantServiceEndpoints(
+        tenantId,
+        activeService.serviceCode,
+      );
+      setServiceEndpoints(endpoints as TenantServiceEndpoint[]);
+      setServiceEndpointDraft({
+        id: "",
+        slug: "",
+        method: "POST",
+        path: "",
+        baseUrl: "",
+        headers: "",
+        enabled: true,
+      });
+      setServiceEndpointMode("create");
+      emitToast("Endpoint guardado.");
+    } catch (err: any) {
+      emitToast(err.message || "No se pudo guardar el endpoint", "error");
+    } finally {
+      setServiceBusy(false);
+    }
+  };
+
+  const handleEditEndpoint = (endpoint: TenantServiceEndpoint) => {
+    setServiceEndpointDraft({
+      id: endpoint.id,
+      slug: endpoint.slug,
+      method: endpoint.method,
+      path: endpoint.path,
+      baseUrl: endpoint.baseUrl || "",
+      headers: endpoint.headers ? JSON.stringify(endpoint.headers, null, 2) : "",
+      enabled: endpoint.enabled,
+    });
+    setServiceEndpointMode("edit");
+  };
+
+  const handleDeleteEndpoint = async (endpoint: TenantServiceEndpoint) => {
+    if (!tenantId || !activeService) {
+      return;
+    }
+    const result = await Swal.fire({
+      title: "¿Eliminar endpoint?",
+      text: endpoint.slug,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Eliminar",
+      cancelButtonText: "Cancelar",
+    });
+    if (!result.isConfirmed) {
+      return;
+    }
+    setServiceBusy(true);
+    try {
+      await api.deleteTenantServiceEndpoint(
+        tenantId,
+        activeService.serviceCode,
+        endpoint.id,
+      );
+      setServiceEndpoints((prev) => prev.filter((item) => item.id !== endpoint.id));
+      emitToast("Endpoint eliminado.");
+    } catch (err: any) {
+      emitToast(err.message || "No se pudo eliminar el endpoint", "error");
+    } finally {
+      setServiceBusy(false);
+    }
+  };
+
+  const handleAssignServiceUser = async () => {
+    if (!tenantId || !activeService || !serviceAssignUserId) {
+      return;
+    }
+    setServiceBusy(true);
+    try {
+      await api.assignTenantServiceUser(tenantId, activeService.serviceCode, {
+        userId: serviceAssignUserId,
+      });
+      const users = await api.listTenantServiceUsers(
+        tenantId,
+        activeService.serviceCode,
+      );
+      setServiceUsers(users as TenantServiceUser[]);
+      setServiceAssignUserId("");
+      await refreshTenantServices(activeService.serviceCode);
+      emitToast("Usuario asignado.");
+    } catch (err: any) {
+      emitToast(err.message || "No se pudo asignar el usuario", "error");
+    } finally {
+      setServiceBusy(false);
+    }
+  };
+
+  const handleUpdateServiceUserStatus = async (
+    assignment: TenantServiceUser,
+    status: "active" | "suspended",
+  ) => {
+    if (!tenantId || !activeService) {
+      return;
+    }
+    setServiceBusy(true);
+    try {
+      await api.updateTenantServiceUser(
+        tenantId,
+        activeService.serviceCode,
+        assignment.userId,
+        { status },
+      );
+      const users = await api.listTenantServiceUsers(
+        tenantId,
+        activeService.serviceCode,
+      );
+      setServiceUsers(users as TenantServiceUser[]);
+      emitToast("Usuario actualizado.");
+    } catch (err: any) {
+      emitToast(err.message || "No se pudo actualizar el usuario", "error");
+    } finally {
+      setServiceBusy(false);
+    }
+  };
+
+  const handleRemoveServiceUser = async (assignment: TenantServiceUser) => {
+    if (!tenantId || !activeService) {
+      return;
+    }
+    const result = await Swal.fire({
+      title: "¿Quitar acceso al servicio?",
+      text: assignment.user.email,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Quitar",
+      cancelButtonText: "Cancelar",
+    });
+    if (!result.isConfirmed) {
+      return;
+    }
+    setServiceBusy(true);
+    try {
+      await api.removeTenantServiceUser(
+        tenantId,
+        activeService.serviceCode,
+        assignment.userId,
+      );
+      const users = await api.listTenantServiceUsers(
+        tenantId,
+        activeService.serviceCode,
+      );
+      setServiceUsers(users as TenantServiceUser[]);
+      await refreshTenantServices(activeService.serviceCode);
+      emitToast("Usuario removido.");
+    } catch (err: any) {
+      emitToast(err.message || "No se pudo quitar el usuario", "error");
+    } finally {
+      setServiceBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!tenant) {
@@ -1258,32 +1599,32 @@ export function ClientSummaryPage() {
           <div className="chart-block">
             <Chart option={serviceOption} height={200} />
           </div>
-          {!subscription && (
+          {contractedServices.length === 0 && (
             <div className="muted">
-              No hay suscripción activa. Crea una suscripción para habilitar
+              No hay servicios contratados. Crea una suscripción para activar
               servicios.
             </div>
           )}
-          {subscription && (
+          {contractedServices.length > 0 && (
             <div className="mini-list">
-              {visibleServices.map((service) => {
-                const serviceEntry = subscriptionServiceMap.get(service.code);
-                const status = serviceEntry?.status || "disabled";
-                const activateAt = serviceEntry?.activateAt
-                  ? new Date(serviceEntry.activateAt).toLocaleDateString()
+              {contractedServices.map((service) => {
+                const status = service.subscriptionStatus || "disabled";
+                const activateAt = service.activateAt
+                  ? new Date(service.activateAt).toLocaleDateString()
                   : null;
-                const deactivateAt = serviceEntry?.deactivateAt
-                  ? new Date(serviceEntry.deactivateAt).toLocaleDateString()
+                const deactivateAt = service.deactivateAt
+                  ? new Date(service.deactivateAt).toLocaleDateString()
                   : null;
-                const rawPrice =
-                  subscription.period === "annual"
-                    ? service.priceAnnualEur
-                    : service.priceMonthlyEur;
-                const price = Number(rawPrice || 0);
                 return (
-                  <div className="mini-row" key={service.code}>
+                  <div className="mini-row" key={service.serviceCode}>
                     <span>{service.name}</span>
-                    <span>{formatEur(price)}</span>
+                    <span>
+                      {formatEur(
+                        subscription?.period === "annual"
+                          ? service.priceAnnualEur
+                          : service.priceMonthlyEur,
+                      )}
+                    </span>
                     <span
                       className={`status ${
                         status === "pending" || status === "pending_removal"
@@ -1297,6 +1638,17 @@ export function ClientSummaryPage() {
                           ? `baja pendiente${deactivateAt ? ` · ${deactivateAt}` : ""}`
                           : status}
                     </span>
+                    <span
+                      className={`status ${
+                        service.configStatus === "suspended" ? "critical" : "active"
+                      }`}
+                    >
+                      {service.configStatus === "suspended"
+                        ? "suspendido"
+                        : "activo"}
+                    </span>
+                    <span>{service.userCount} usuarios</span>
+                    <span>{service.endpointCount} endpoints</span>
                     <button
                       className="link"
                       type="button"
@@ -1309,6 +1661,15 @@ export function ClientSummaryPage() {
                     >
                       Ver documentación
                     </button>
+                    {canManageServices && (
+                      <button
+                        className="link"
+                        type="button"
+                        onClick={() => openServiceModal(service)}
+                      >
+                        Gestionar
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -1624,6 +1985,12 @@ export function ClientSummaryPage() {
             {usageEvents.map((event) => (
               <div className="mini-row" key={event.id}>
                 <span>{event.model}</span>
+                <span>
+                  {event.serviceCode
+                    ? serviceOverviewMap.get(event.serviceCode)?.name ||
+                      event.serviceCode
+                    : "general"}
+                </span>
                 <span>{event.tokensIn + event.tokensOut} tokens</span>
                 <span>{formatUsdWithEur(event.costUsd)}</span>
                 <span>{new Date(event.createdAt).toLocaleString()}</span>
@@ -1709,6 +2076,14 @@ export function ClientSummaryPage() {
                 chatUsers.find((user) => user.id === conversation.userId)
                   ?.email || conversation.userId,
             },
+            {
+              key: "serviceCode",
+              label: "Servicio",
+              sortable: true,
+              render: (conversation: ChatConversation) =>
+                serviceOverviewMap.get(conversation.serviceCode)?.name ||
+                conversation.serviceCode,
+            },
             { key: "model", label: "Modelo", sortable: true },
             {
               key: "createdAt",
@@ -1745,7 +2120,7 @@ export function ClientSummaryPage() {
           data={chatConversations}
           getRowId={(conversation) => conversation.id}
           pageSize={6}
-          filterKeys={["title", "userId", "model"]}
+          filterKeys={["title", "userId", "model", "serviceCode"]}
         />
         {chatConversations.length === 0 && (
           <div className="muted">Sin conversaciones.</div>
@@ -1765,6 +2140,307 @@ export function ClientSummaryPage() {
           </div>
         )}
       </div>
+
+      {serviceModalOpen && activeService && (
+        <div className="modal-backdrop" onClick={closeServiceModal}>
+          <div className="modal modal-wide" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <div className="eyebrow">Servicio</div>
+                <h3>{activeService.name}</h3>
+                <p className="muted">{activeService.description}</p>
+              </div>
+              <button className="btn" onClick={closeServiceModal}>
+                Cerrar
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                <label>
+                  Estado operativo
+                  <select
+                    value={serviceConfigDraft.status}
+                    onChange={(event) =>
+                      setServiceConfigDraft((prev) => ({
+                        ...prev,
+                        status: event.target.value as "active" | "suspended",
+                      }))
+                    }
+                  >
+                    <option value="active">active</option>
+                    <option value="suspended">suspended</option>
+                  </select>
+                </label>
+                <label className="full-row">
+                  Prompt de comportamiento (aplica a todo el servicio)
+                  <textarea
+                    value={serviceConfigDraft.systemPrompt}
+                    onChange={(event) =>
+                      setServiceConfigDraft((prev) => ({
+                        ...prev,
+                        systemPrompt: event.target.value,
+                      }))
+                    }
+                    placeholder="Define el estilo del asistente, tono y reglas..."
+                  />
+                </label>
+              </div>
+              <div className="form-actions">
+                <button
+                  className="btn primary"
+                  onClick={handleSaveServiceConfig}
+                  disabled={serviceBusy}
+                >
+                  Guardar configuración
+                </button>
+              </div>
+
+              <div className="section-divider" />
+
+              <h4>Endpoints del servicio</h4>
+              <div className="form-grid">
+                <label>
+                  Slug
+                  <input
+                    value={serviceEndpointDraft.slug}
+                    onChange={(event) =>
+                      setServiceEndpointDraft((prev) => ({
+                        ...prev,
+                        slug: event.target.value,
+                      }))
+                    }
+                    placeholder="send-message"
+                  />
+                </label>
+                <label>
+                  Método
+                  <select
+                    value={serviceEndpointDraft.method}
+                    onChange={(event) =>
+                      setServiceEndpointDraft((prev) => ({
+                        ...prev,
+                        method: event.target.value,
+                      }))
+                    }
+                  >
+                    {["GET", "POST", "PUT", "PATCH", "DELETE"].map((method) => (
+                      <option key={method} value={method}>
+                        {method}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Path
+                  <input
+                    value={serviceEndpointDraft.path}
+                    onChange={(event) =>
+                      setServiceEndpointDraft((prev) => ({
+                        ...prev,
+                        path: event.target.value,
+                      }))
+                    }
+                    placeholder="/chat/send"
+                  />
+                </label>
+                <label>
+                  Base URL (opcional)
+                  <input
+                    value={serviceEndpointDraft.baseUrl}
+                    onChange={(event) =>
+                      setServiceEndpointDraft((prev) => ({
+                        ...prev,
+                        baseUrl: event.target.value,
+                      }))
+                    }
+                    placeholder="https://api.cliente.com"
+                  />
+                </label>
+                <label className="full-row">
+                  Headers JSON (opcional)
+                  <textarea
+                    value={serviceEndpointDraft.headers}
+                    onChange={(event) =>
+                      setServiceEndpointDraft((prev) => ({
+                        ...prev,
+                        headers: event.target.value,
+                      }))
+                    }
+                    placeholder='{"Authorization": "Bearer ..."}'
+                  />
+                </label>
+                <label>
+                  Activo
+                  <input
+                    type="checkbox"
+                    checked={serviceEndpointDraft.enabled}
+                    onChange={(event) =>
+                      setServiceEndpointDraft((prev) => ({
+                        ...prev,
+                        enabled: event.target.checked,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+              <div className="form-actions">
+                <button
+                  className="btn primary"
+                  onClick={handleSaveEndpoint}
+                  disabled={
+                    serviceBusy ||
+                    !serviceEndpointDraft.slug.trim() ||
+                    !serviceEndpointDraft.path.trim()
+                  }
+                >
+                  {serviceEndpointMode === "edit"
+                    ? "Actualizar endpoint"
+                    : "Crear endpoint"}
+                </button>
+                {serviceEndpointMode === "edit" && (
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      setServiceEndpointMode("create");
+                      setServiceEndpointDraft({
+                        id: "",
+                        slug: "",
+                        method: "POST",
+                        path: "",
+                        baseUrl: "",
+                        headers: "",
+                        enabled: true,
+                      });
+                    }}
+                  >
+                    Cancelar edición
+                  </button>
+                )}
+              </div>
+
+              <DataTable
+                columns={[
+                  { key: "slug", label: "Slug", sortable: true },
+                  { key: "method", label: "Método", sortable: true },
+                  { key: "path", label: "Path", sortable: true },
+                  {
+                    key: "enabled",
+                    label: "Estado",
+                    sortable: true,
+                    render: (row: TenantServiceEndpoint) => (
+                      <span className={`status ${row.enabled ? "active" : "disabled"}`}>
+                        {row.enabled ? "active" : "disabled"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "actions",
+                    label: "Acciones",
+                    render: (row: TenantServiceEndpoint) => (
+                      <div className="row-actions">
+                        <button className="link" onClick={() => handleEditEndpoint(row)}>
+                          Editar
+                        </button>
+                        <button className="link danger" onClick={() => handleDeleteEndpoint(row)}>
+                          Eliminar
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]}
+                data={serviceEndpoints}
+                getRowId={(row) => row.id}
+                pageSize={5}
+                filterKeys={["slug", "method", "path"]}
+              />
+              {serviceEndpoints.length === 0 && (
+                <div className="muted">Sin endpoints configurados.</div>
+              )}
+
+              <div className="section-divider" />
+
+              <h4>Usuarios asignados</h4>
+              <div className="form-grid">
+                <label>
+                  Asignar usuario existente
+                  <select
+                    value={serviceAssignUserId}
+                    onChange={(event) => setServiceAssignUserId(event.target.value)}
+                  >
+                    <option value="">Selecciona un usuario</option>
+                    {availableServiceUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name || user.email}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="form-actions">
+                  <button
+                    className="btn primary"
+                    onClick={handleAssignServiceUser}
+                    disabled={serviceBusy || !serviceAssignUserId}
+                  >
+                    Asignar
+                  </button>
+                </div>
+              </div>
+
+              <DataTable
+                columns={[
+                  {
+                    key: "name",
+                    label: "Usuario",
+                    sortable: true,
+                    render: (row: any) => row.name || row.email,
+                  },
+                  { key: "email", label: "Email", sortable: true },
+                  {
+                    key: "status",
+                    label: "Estado",
+                    sortable: true,
+                    render: (row: any) => (
+                      <span className={`status ${row.status}`}>{row.status}</span>
+                    ),
+                  },
+                  {
+                    key: "actions",
+                    label: "Acciones",
+                    render: (row: any) => (
+                      <div className="row-actions">
+                        <button
+                          className="link"
+                          onClick={() =>
+                            handleUpdateServiceUserStatus(
+                              row,
+                              row.status === "active" ? "suspended" : "active",
+                            )
+                          }
+                        >
+                          {row.status === "active" ? "Suspender" : "Activar"}
+                        </button>
+                        <button
+                          className="link danger"
+                          onClick={() => handleRemoveServiceUser(row)}
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]}
+                data={serviceUserRows as any[]}
+                getRowId={(row: any) => row.userId}
+                pageSize={6}
+                filterKeys={["name", "email", "status"]}
+              />
+              {serviceUserRows.length === 0 && (
+                <div className="muted">Sin usuarios asignados.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {canManageChatUsers && chatUserModalOpen && (
         <div

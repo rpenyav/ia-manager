@@ -25,6 +25,9 @@ import { Subscription } from './common/entities/subscription.entity';
 import { SubscriptionService } from './common/entities/subscription-service.entity';
 import { SubscriptionHistory } from './common/entities/subscription-history.entity';
 import { SubscriptionPaymentRequest } from './common/entities/subscription-payment-request.entity';
+import { TenantServiceConfig } from './common/entities/tenant-service-config.entity';
+import { TenantServiceEndpoint } from './common/entities/tenant-service-endpoint.entity';
+import { TenantServiceUser } from './common/entities/tenant-service-user.entity';
 
 const stripQuotes = (value?: string) => (value ? value.replace(/^['"]|['"]$/g, '') : value);
 
@@ -60,7 +63,10 @@ export default new DataSource({
     Subscription,
     SubscriptionService,
     SubscriptionHistory,
-    SubscriptionPaymentRequest
+    SubscriptionPaymentRequest,
+    TenantServiceConfig,
+    TenantServiceEndpoint,
+    TenantServiceUser
   ],
   migrations: ['src/migrations/*.ts'],
   synchronize: false

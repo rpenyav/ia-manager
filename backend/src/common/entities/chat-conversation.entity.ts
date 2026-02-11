@@ -17,6 +17,9 @@ export class ChatConversation {
   @Column({ type: 'varchar', length: 128 })
   model!: string;
 
+  @Column({ type: 'varchar', length: 64 })
+  serviceCode!: string;
+
   @Column({ type: 'varchar', length: 200, nullable: true })
   title?: string | null;
 

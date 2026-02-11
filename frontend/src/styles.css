@@ -937,6 +937,12 @@ h1 {
   gap: 16px;
 }
 
+.modal.modal-wide {
+  width: min(980px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+
 .modal-header {
   display: flex;
   align-items: flex-start;
@@ -947,6 +953,13 @@ h1 {
 .modal-body {
   display: grid;
   gap: 16px;
+}
+
+.section-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(15, 15, 15, 0.08);
+  margin: 12px 0;
 }
 
 .modal-actions {

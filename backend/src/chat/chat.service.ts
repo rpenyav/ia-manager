@@ -5,6 +5,7 @@ import { ChatConversation } from '../common/entities/chat-conversation.entity';
 import { ChatMessage } from '../common/entities/chat-message.entity';
 import { ChatUser } from '../common/entities/chat-user.entity';
 import { RuntimeService } from '../runtime/runtime.service';
+import { TenantServicesService } from '../tenant-services/tenant-services.service';
 import { ChatAuthService } from './chat-auth.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
@@ -21,7 +22,8 @@ export class ChatService {
     @InjectRepository(ChatUser)
     private readonly usersRepository: Repository<ChatUser>,
     private readonly runtimeService: RuntimeService,
-    private readonly chatAuthService: ChatAuthService
+    private readonly chatAuthService: ChatAuthService,
+    private readonly tenantServicesService: TenantServicesService
   ) {}
 
   async listConversations(tenantId: string, userId: string) {
@@ -31,28 +33,36 @@ export class ChatService {
     });
   }
 
+  async listUserServices(tenantId: string, userId: string) {
+    return this.tenantServicesService.listServicesForUser(tenantId, userId);
+  }
+
   async createConversation(
     tenantId: string,
     userId: string,
     apiKeyId: string | null,
     dto: CreateConversationDto
   ) {
+    const serviceCode = dto.serviceCode.trim();
+    const access = await this.tenantServicesService.requireServiceAccess(tenantId, serviceCode, userId);
     const conversation = this.conversationsRepository.create({
       tenantId,
       userId,
+      serviceCode,
       providerId: dto.providerId,
       model: dto.model,
       title: dto.title?.trim() || null,
       apiKeyId: apiKeyId || null
     });
     const saved = await this.conversationsRepository.save(conversation);
-    if (dto.systemPrompt?.trim()) {
+    const prompt = access.config?.systemPrompt?.trim() || dto.systemPrompt?.trim() || '';
+    if (prompt) {
       const systemMessage = this.messagesRepository.create({
         tenantId,
         conversationId: saved.id,
         userId,
         role: 'system',
-        content: dto.systemPrompt.trim()
+        content: prompt
       });
       await this.messagesRepository.save(systemMessage);
     }
@@ -93,6 +103,11 @@ export class ChatService {
     if (conversation.userId !== userId) {
       throw new ForbiddenException('Conversation does not belong to user');
     }
+    await this.tenantServicesService.requireServiceAccess(
+      tenantId,
+      conversation.serviceCode,
+      userId
+    );
 
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user || user.status !== 'active') {
@@ -121,7 +136,8 @@ export class ChatService {
     const runtimeResponse = await this.runtimeService.execute(tenantId, {
       providerId: conversation.providerId,
       model: conversation.model,
-      payload: { messages: payloadMessages }
+      payload: { messages: payloadMessages },
+      serviceCode: conversation.serviceCode
     });
 
     const output = runtimeResponse.output as any;
@@ -261,6 +277,7 @@ export class ChatService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+    await this.tenantServicesService.removeUserFromAllServices(tenantId, id);
     await this.messagesRepository.delete({ tenantId, userId: id });
     await this.conversationsRepository.delete({ tenantId, userId: id });
     await this.usersRepository.delete({ tenantId, id });

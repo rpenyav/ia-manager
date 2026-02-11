@@ -85,6 +85,7 @@ export class RuntimeService {
         tenantId,
         providerId: provider.id,
         model: dto.model,
+        serviceCode: dto.serviceCode || null,
         tokensIn: response.tokensIn,
         tokensOut: response.tokensOut,
         costUsd: computedCost

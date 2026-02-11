@@ -71,6 +71,7 @@ export type UsageEvent = {
   tenantId: string;
   providerId: string;
   model: string;
+  serviceCode?: string | null;
   tokensIn: number;
   tokensOut: number;
   costUsd: number;
@@ -125,6 +126,41 @@ export type TenantServiceSettings = {
   genericEnabled: boolean;
   ocrEnabled: boolean;
   sqlEnabled: boolean;
+};
+
+export type TenantServiceOverview = {
+  serviceCode: string;
+  name: string;
+  description: string;
+  priceMonthlyEur: number;
+  priceAnnualEur: number;
+  subscriptionStatus: 'active' | 'pending' | 'pending_removal' | 'disabled';
+  activateAt: string | null;
+  deactivateAt?: string | null;
+  configStatus: 'active' | 'suspended';
+  systemPrompt: string | null;
+  userCount: number;
+  endpointCount: number;
+};
+
+export type TenantServiceEndpoint = {
+  id: string;
+  tenantId: string;
+  serviceCode: string;
+  slug: string;
+  method: string;
+  path: string;
+  baseUrl?: string | null;
+  headers?: Record<string, string> | null;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TenantServiceUser = {
+  userId: string;
+  status: 'active' | 'suspended';
+  user: ChatUserSummary;
 };
 
 export type ServiceCatalogItem = {
@@ -233,6 +269,7 @@ export type ChatConversation = {
   userId: string;
   providerId: string;
   model: string;
+  serviceCode: string;
   title?: string | null;
   apiKeyId?: string | null;
   createdAt: string;

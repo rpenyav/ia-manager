@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS usage_events (
   tenantId varchar(36) NOT NULL,
   providerId varchar(36) NOT NULL,
   model varchar(64) NOT NULL,
+  serviceCode varchar(64) NULL,
   tokensIn int NOT NULL,
   tokensOut int NOT NULL,
   costUsd decimal(10,6) NOT NULL,
@@ -271,6 +272,7 @@ CREATE TABLE IF NOT EXISTS chat_conversations (
   userId varchar(36) NOT NULL,
   providerId varchar(36) NOT NULL,
   model varchar(128) NOT NULL,
+  serviceCode varchar(64) NOT NULL DEFAULT 'chat_generic',
   title varchar(200) NULL,
   apiKeyId varchar(36) NULL,
   createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -289,6 +291,46 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   tokensOut int NOT NULL DEFAULT 0,
   createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS tenant_service_configs (
+  id varchar(36) NOT NULL,
+  tenantId varchar(36) NOT NULL,
+  serviceCode varchar(64) NOT NULL,
+  status varchar(16) NOT NULL DEFAULT 'active',
+  systemPrompt text NULL,
+  createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_tenant_service_config (tenantId, serviceCode)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS tenant_service_endpoints (
+  id varchar(36) NOT NULL,
+  tenantId varchar(36) NOT NULL,
+  serviceCode varchar(64) NOT NULL,
+  slug varchar(64) NOT NULL,
+  method varchar(12) NOT NULL,
+  path varchar(255) NOT NULL,
+  baseUrl varchar(255) NULL,
+  headers json NULL,
+  enabled tinyint(1) NOT NULL DEFAULT 1,
+  createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_tenant_service_endpoint (tenantId, serviceCode, slug)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS tenant_service_users (
+  id varchar(36) NOT NULL,
+  tenantId varchar(36) NOT NULL,
+  serviceCode varchar(64) NOT NULL,
+  userId varchar(36) NOT NULL,
+  status varchar(16) NOT NULL DEFAULT 'active',
+  createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_tenant_service_user (tenantId, serviceCode, userId)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS admin_users (

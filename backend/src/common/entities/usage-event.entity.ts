@@ -14,6 +14,9 @@ export class UsageEvent {
   @Column({ type: 'varchar', length: 64 })
   model!: string;
 
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  serviceCode?: string | null;
+
   @Column({ type: 'int' })
   tokensIn!: number;
 

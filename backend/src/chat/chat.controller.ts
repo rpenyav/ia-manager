@@ -46,6 +46,13 @@ export class ChatController {
     return this.chatService.listConversations(tenantId, userId);
   }
 
+  @Get('services')
+  listServices(@Req() request: Request & { auth?: any; chatUser?: any }) {
+    const tenantId = this.getTenantId(request);
+    const userId = this.getUserId(request);
+    return this.chatService.listUserServices(tenantId, userId);
+  }
+
   @Post('conversations')
   createConversation(
     @Req() request: Request & { auth?: any; chatUser?: any },

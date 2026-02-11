@@ -3,6 +3,10 @@ import { IsOptional, IsString, Length } from 'class-validator';
 export class CreateConversationDto {
   @IsString()
   @Length(2, 64)
+  serviceCode!: string;
+
+  @IsString()
+  @Length(2, 64)
   providerId!: string;
 
   @IsString()

@@ -18,6 +18,7 @@ type Conversation = {
   id: string;
   title?: string | null;
   model: string;
+  serviceCode: string;
   userId: string;
   updatedAt: string;
 };
@@ -25,6 +26,14 @@ type Conversation = {
 type EndpointOption = {
   label: string;
   value: 'persisted' | 'chatbots' | 'runtime';
+};
+
+type ServiceOption = {
+  serviceCode: string;
+  name: string;
+  description?: string | null;
+  status: 'active' | 'suspended' | string;
+  subscriptionStatus?: string;
 };
 
 const endpointOptions: EndpointOption[] = [
@@ -38,6 +47,7 @@ const defaultApiKey = import.meta.env.VITE_API_KEY || '';
 const defaultProviderId = import.meta.env.VITE_PROVIDER_ID || '';
 const defaultModel = import.meta.env.VITE_MODEL || 'gpt-4o-mini';
 const defaultTenantId = import.meta.env.VITE_TENANT_ID || '';
+const defaultServiceCode = import.meta.env.VITE_SERVICE_CODE || 'chat_generic';
 const defaultEndpoint = (import.meta.env.VITE_CHAT_ENDPOINT || 'persisted') as
   | 'persisted'
   | 'chatbots'
@@ -49,6 +59,9 @@ export default function App() {
   const [providerId, setProviderId] = useState(defaultProviderId);
   const [model, setModel] = useState(defaultModel);
   const [tenantId, setTenantId] = useState(defaultTenantId);
+  const [serviceCode, setServiceCode] = useState(defaultServiceCode);
+  const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
+  const [serviceLoading, setServiceLoading] = useState(false);
   const [endpointMode, setEndpointMode] = useState<EndpointOption['value']>(
     endpointOptions.some((item) => item.value === defaultEndpoint)
       ? defaultEndpoint
@@ -90,6 +103,19 @@ export default function App() {
     }
   }, [endpointMode, chatToken, baseUrl, apiKey]);
 
+  useEffect(() => {
+    if (!chatToken) {
+      setServiceOptions([]);
+      return;
+    }
+    loadServices(chatToken).catch(() => undefined);
+  }, [chatToken, baseUrl, apiKey]);
+
+  const selectedService = useMemo(
+    () => serviceOptions.find((service) => service.serviceCode === serviceCode),
+    [serviceOptions, serviceCode]
+  );
+
   const history = useMemo(() => {
     const list = [...messages];
     if (systemPrompt.trim() && endpointMode !== 'persisted') {
@@ -98,6 +124,8 @@ export default function App() {
     return list;
   }, [messages, systemPrompt, endpointMode]);
 
+  const serviceRequiresSelection = endpointMode === 'persisted';
+  const serviceActive = !selectedService || selectedService.status === 'active';
   const canSend =
     baseUrl.trim() &&
     apiKey.trim() &&
@@ -105,7 +133,9 @@ export default function App() {
     model.trim() &&
     input.trim().length > 0 &&
     !loading &&
-    (endpointMode !== 'persisted' || Boolean(chatToken));
+    (endpointMode !== 'persisted' || Boolean(chatToken)) &&
+    (!serviceRequiresSelection || serviceCode.trim()) &&
+    (!serviceRequiresSelection || serviceActive);
 
   const baseHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -115,6 +145,33 @@ export default function App() {
   if (tenantId.trim()) {
     baseHeaders['x-tenant-id'] = tenantId.trim();
   }
+
+  const loadServices = async (token: string) => {
+    setServiceLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${baseUrl}/chat/services`, {
+        headers: {
+          ...baseHeaders,
+          'x-chat-token': token
+        }
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`API ${response.status}: ${text}`);
+      }
+      const data = (await response.json()) as ServiceOption[];
+      setServiceOptions(data);
+      if (data.length > 0 && !data.some((item) => item.serviceCode === serviceCode)) {
+        const firstActive = data.find((item) => item.status === 'active') || data[0];
+        setServiceCode(firstActive.serviceCode);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error cargando servicios');
+    } finally {
+      setServiceLoading(false);
+    }
+  };
 
   const loadConversations = async (token: string) => {
     const response = await fetch(`${baseUrl}/chat/conversations`, {
@@ -168,6 +225,7 @@ export default function App() {
       setChatUser(data.user);
       localStorage.setItem('pm_chat_token', data.accessToken);
       localStorage.setItem('pm_chat_user', JSON.stringify(data.user));
+      await loadServices(data.accessToken);
       await loadConversations(data.accessToken);
       setMessages([]);
       setActiveConversationId(null);
@@ -203,6 +261,7 @@ export default function App() {
       setChatUser(data.user);
       localStorage.setItem('pm_chat_token', data.accessToken);
       localStorage.setItem('pm_chat_user', JSON.stringify(data.user));
+      await loadServices(data.accessToken);
       await loadConversations(data.accessToken);
       setMessages([]);
       setActiveConversationId(null);
@@ -216,6 +275,7 @@ export default function App() {
   const handleLogout = () => {
     setChatToken('');
     setChatUser(null);
+    setServiceOptions([]);
     setConversations([]);
     setMessages([]);
     setActiveConversationId(null);
@@ -248,7 +308,8 @@ export default function App() {
               providerId,
               model,
               title,
-              systemPrompt: systemPrompt.trim() || undefined
+              systemPrompt: systemPrompt.trim() || undefined,
+              serviceCode: serviceCode.trim() || undefined
             })
           });
           if (!createResponse.ok) {
@@ -289,11 +350,13 @@ export default function App() {
           ? {
               providerId,
               model,
+              serviceCode: serviceCode.trim() || undefined,
               messages: history.concat(userMessage)
             }
           : {
               providerId,
               model,
+              serviceCode: serviceCode.trim() || undefined,
               payload: { messages: history.concat(userMessage) }
             };
 
@@ -371,6 +434,45 @@ export default function App() {
               ))}
             </select>
           </label>
+        </div>
+
+        <div className="section">
+          <h3>Servicio</h3>
+          {serviceOptions.length > 0 ? (
+            <label>
+              Servicio contratado
+              <select
+                value={serviceCode}
+                onChange={(e) => setServiceCode(e.target.value)}
+                disabled={serviceLoading}
+              >
+                {serviceOptions.map((service) => (
+                  <option key={service.serviceCode} value={service.serviceCode}>
+                    {service.name}
+                    {service.status !== 'active' ? ' · suspendido' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label>
+              Código de servicio
+              <input
+                value={serviceCode}
+                onChange={(e) => setServiceCode(e.target.value)}
+                placeholder="chat_generic"
+              />
+            </label>
+          )}
+          {serviceLoading && <div className="muted">Cargando servicios…</div>}
+          {chatToken && serviceOptions.length === 0 && !serviceLoading && (
+            <div className="muted">No hay servicios asignados a este usuario.</div>
+          )}
+          {selectedService && selectedService.status !== 'active' && (
+            <div className="error">
+              Servicio suspendido. No podrás enviar mensajes hasta reactivarlo.
+            </div>
+          )}
         </div>
 
         {endpointMode === 'persisted' && (
@@ -455,6 +557,11 @@ export default function App() {
                     </div>
                     <div className="conversation-meta">
                       {new Date(conversation.updatedAt).toLocaleString()}
+                    </div>
+                    <div className="conversation-meta">
+                      Servicio:{' '}
+                      {serviceOptions.find((service) => service.serviceCode === conversation.serviceCode)
+                        ?.name || conversation.serviceCode}
                     </div>
                   </div>
                 </button>

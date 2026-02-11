@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS subscription_services (
   serviceCode varchar(64) NOT NULL,
   status varchar(16) NOT NULL DEFAULT 'active',
   activateAt timestamp NULL,
+  deactivateAt timestamp NULL,
   priceEur decimal(10,2) NOT NULL DEFAULT 0,
   createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

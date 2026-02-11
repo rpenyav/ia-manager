@@ -14,5 +14,10 @@ export class ExecuteRequestDto {
 
   @IsOptional()
   @IsString()
+  @Length(2, 64)
+  serviceCode?: string;
+
+  @IsOptional()
+  @IsString()
   requestId?: string;
 }

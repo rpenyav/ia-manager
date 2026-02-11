@@ -39,6 +39,9 @@ import { Subscription } from './common/entities/subscription.entity';
 import { SubscriptionService } from './common/entities/subscription-service.entity';
 import { SubscriptionHistory } from './common/entities/subscription-history.entity';
 import { SubscriptionPaymentRequest } from './common/entities/subscription-payment-request.entity';
+import { TenantServiceConfig } from './common/entities/tenant-service-config.entity';
+import { TenantServiceEndpoint } from './common/entities/tenant-service-endpoint.entity';
+import { TenantServiceUser } from './common/entities/tenant-service-user.entity';
 import { SettingsModule } from './settings/settings.module';
 import { redisStore } from 'cache-manager-ioredis-yet';
 import { PricingModule } from './pricing/pricing.module';
@@ -125,7 +128,10 @@ const stripQuotes = (value?: string) => (value ? value.replace(/^['"]|['"]$/g, '
             Subscription,
             SubscriptionService,
             SubscriptionHistory,
-            SubscriptionPaymentRequest
+            SubscriptionPaymentRequest,
+            TenantServiceConfig,
+            TenantServiceEndpoint,
+            TenantServiceUser
           ],
           synchronize: false
         };

@@ -11,6 +11,10 @@ export class PoliciesService {
     private readonly policiesRepository: Repository<Policy>
   ) {}
 
+  listAll() {
+    return this.policiesRepository.find({ order: { updatedAt: 'DESC' } });
+  }
+
   async getByTenant(tenantId: string): Promise<Policy | null> {
     return this.policiesRepository.findOne({ where: { tenantId } });
   }
@@ -32,5 +36,10 @@ export class PoliciesService {
     });
 
     return this.policiesRepository.save(policy);
+  }
+
+  async deleteByTenant(tenantId: string) {
+    await this.policiesRepository.delete({ tenantId });
+    return { deleted: true };
   }
 }

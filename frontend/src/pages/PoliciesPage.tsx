@@ -1,15 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { useDashboard } from '../dashboard';
 import { PageWithDocs } from '../components/PageWithDocs';
 import { FieldWithHelp } from '../components/FieldWithHelp';
+import { DataTable } from '../components/DataTable';
+import { useAuth } from '../auth';
 import type { Policy } from '../types';
 import { formatUsdWithEur } from '../utils/currency';
+import Swal from 'sweetalert2';
 
 export function PoliciesPage() {
-  const { selectedTenantId } = useDashboard();
+  const { role } = useAuth();
+  const { tenants, selectedTenantId, setSelectedTenantId } = useDashboard();
   const [policy, setPolicy] = useState<Policy | null>(null);
+  const [policies, setPolicies] = useState<Policy[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const [listLoading, setListLoading] = useState(false);
   const [form, setForm] = useState({
     maxRequestsPerMinute: 60,
     maxTokensPerDay: 200000,
@@ -17,6 +24,13 @@ export function PoliciesPage() {
     redactionEnabled: true,
     metadata: '{}'
   });
+
+  const canEdit = role === 'admin';
+
+  const tenantNameMap = useMemo(
+    () => new Map(tenants.map((tenant) => [tenant.id, tenant.name])),
+    [tenants]
+  );
 
   useEffect(() => {
     if (!selectedTenantId) {
@@ -44,8 +58,31 @@ export function PoliciesPage() {
     load();
   }, [selectedTenantId]);
 
+  useEffect(() => {
+    if (role !== 'admin') {
+      setPolicies([]);
+      return;
+    }
+    const loadPolicies = async () => {
+      setListLoading(true);
+      try {
+        const list = await api.listPolicies();
+        setPolicies(list);
+        setListError(null);
+      } catch (err: any) {
+        setListError(err.message || 'Error cargando políticas');
+      } finally {
+        setListLoading(false);
+      }
+    };
+    loadPolicies();
+  }, [role]);
+
   const handleSave = async () => {
     if (!selectedTenantId) {
+      return;
+    }
+    if (!canEdit) {
       return;
     }
     try {
@@ -59,8 +96,47 @@ export function PoliciesPage() {
       const updated = await api.upsertPolicy(selectedTenantId, payload);
       setPolicy(updated);
       setError(null);
+      if (role === 'admin') {
+        const list = await api.listPolicies();
+        setPolicies(list);
+      }
     } catch (err: any) {
       setError(err.message || 'Error guardando política');
+    }
+  };
+
+  const handleDelete = async (tenantId: string) => {
+    const tenantName = tenantNameMap.get(tenantId) || tenantId;
+    const result = await Swal.fire({
+      title: 'Eliminar política',
+      text: `¿Seguro que quieres eliminar la política de ${tenantName}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+    if (!result.isConfirmed) {
+      return;
+    }
+    try {
+      await api.deletePolicy(tenantId);
+      const list = await api.listPolicies();
+      setPolicies(list);
+      if (selectedTenantId === tenantId) {
+        setPolicy(null);
+      }
+      await Swal.fire({
+        title: 'Política eliminada',
+        icon: 'success',
+        timer: 1600,
+        showConfirmButton: false
+      });
+    } catch (err: any) {
+      await Swal.fire({
+        title: 'Error',
+        text: err.message || 'No se pudo eliminar la política.',
+        icon: 'error'
+      });
     }
   };
 
@@ -79,6 +155,92 @@ export function PoliciesPage() {
           Para asignar este recurso a un cliente, ve a su perfil (Resumen del cliente).
         </div>
         {error && <div className="error-banner">{error}</div>}
+        {listError && <div className="error-banner">{listError}</div>}
+
+        {role === 'admin' && (
+          <div className="card full-row">
+            <div className="card-header">
+              <div>
+                <h2>Políticas creadas</h2>
+                <p className="muted">Listado global de políticas por tenant.</p>
+              </div>
+            </div>
+            <DataTable
+              columns={[
+                {
+                  key: 'tenantId',
+                  label: 'Tenant',
+                  sortable: true,
+                  render: (row: Policy) => tenantNameMap.get(row.tenantId) || row.tenantId
+                },
+                {
+                  key: 'maxRequestsPerMinute',
+                  label: 'RPM',
+                  sortable: true
+                },
+                {
+                  key: 'maxTokensPerDay',
+                  label: 'Tokens/día',
+                  sortable: true
+                },
+                {
+                  key: 'maxCostPerDayUsd',
+                  label: 'Coste/día',
+                  sortable: true,
+                  render: (row: Policy) =>
+                    `${Number(row.maxCostPerDayUsd).toFixed(2)} USD · ${formatUsdWithEur(
+                      Number(row.maxCostPerDayUsd)
+                    )}`
+                },
+                {
+                  key: 'redactionEnabled',
+                  label: 'Redacción',
+                  sortable: true,
+                  render: (row: Policy) => (row.redactionEnabled ? 'ON' : 'OFF')
+                },
+                {
+                  key: 'updatedAt',
+                  label: 'Actualizado',
+                  sortable: true,
+                  render: (row: Policy) => new Date(row.updatedAt).toLocaleString()
+                },
+                {
+                  key: 'actions',
+                  label: 'Acciones',
+                  render: (row: Policy) => (
+                    <div className="row-actions">
+                      <button
+                        className="link"
+                        onClick={() => setSelectedTenantId(row.tenantId)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        className="link danger"
+                        onClick={() => handleDelete(row.tenantId)}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  )
+                }
+              ]}
+              data={policies}
+              getRowId={(row) => row.id}
+              pageSize={8}
+              filterKeys={[
+                'tenantId',
+                'maxRequestsPerMinute',
+                'maxTokensPerDay',
+                'maxCostPerDayUsd'
+              ]}
+            />
+            {listLoading && <div className="muted">Cargando políticas…</div>}
+            {!listLoading && policies.length === 0 && (
+              <div className="muted">No hay políticas creadas.</div>
+            )}
+          </div>
+        )}
 
         <div className="card">
           <h2>Políticas</h2>
@@ -92,6 +254,7 @@ export function PoliciesPage() {
                 onChange={(event) =>
                   setForm({ ...form, maxRequestsPerMinute: Number(event.target.value) })
                 }
+                disabled={!canEdit}
               />
             </FieldWithHelp>
             <FieldWithHelp help="policiesMaxTokensPerDay">
@@ -102,6 +265,7 @@ export function PoliciesPage() {
                 onChange={(event) =>
                   setForm({ ...form, maxTokensPerDay: Number(event.target.value) })
                 }
+                disabled={!canEdit}
               />
             </FieldWithHelp>
             <FieldWithHelp help="policiesMaxCostPerDayUsd">
@@ -113,6 +277,7 @@ export function PoliciesPage() {
                   onChange={(event) =>
                     setForm({ ...form, maxCostPerDayUsd: Number(event.target.value) })
                   }
+                  disabled={!canEdit}
                 />
                 <span className="muted">≈ {formatUsdWithEur(Number(form.maxCostPerDayUsd || 0))}</span>
               </div>
@@ -125,6 +290,7 @@ export function PoliciesPage() {
                   onChange={(event) =>
                     setForm({ ...form, redactionEnabled: event.target.checked })
                   }
+                  disabled={!canEdit}
                 />
                 Redacción habilitada
               </label>
@@ -135,12 +301,17 @@ export function PoliciesPage() {
                 value={form.metadata}
                 onChange={(event) => setForm({ ...form, metadata: event.target.value })}
                 rows={4}
+                disabled={!canEdit}
               />
             </FieldWithHelp>
             <div className="form-actions">
-              <button className="btn primary" onClick={handleSave}>
-                {policy ? 'Actualizar' : 'Crear'} política
-              </button>
+              {canEdit ? (
+                <button className="btn primary" onClick={handleSave}>
+                  {policy ? 'Actualizar' : 'Crear'} política
+                </button>
+              ) : (
+                <div className="muted">Solo el rol admin puede editar políticas.</div>
+              )}
             </div>
           </div>
         </div>
