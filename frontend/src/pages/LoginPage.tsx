@@ -8,11 +8,14 @@ export function LoginPage() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const query = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
+  );
   const token = query.get("token") || "";
   const isResetPath = location.pathname.startsWith("/reset-password");
   const [mode, setMode] = useState<"login" | "reset">(
-    isResetPath || token ? "reset" : "login"
+    isResetPath || token ? "reset" : "login",
   );
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -120,36 +123,37 @@ export function LoginPage() {
                   <LogoNeria color="#000" size={150} />
                 </div>
                 <div className="col-12 col-md-10 auth-hero-col-text ps-4">
-                  <h1>Get started con tu control de IA.</h1>
+                  <h1>IA Manager Control.</h1>
                 </div>
               </div>
-              <p>
-                Seguridad, costes y auditoría en una sola puerta de acceso.
-                Centraliza proveedores LLM y opera tenants con garantías reales.
-              </p>
+              <p></p>
               <div className="auth-hero-actions">
-                <a className="btn primary" href="#capabilities">
+                {/* <a className="btn primary" href="#capabilities">
                   Ver capacidades
                 </a>
                 <a className="btn" href="#architecture">
                   Arquitectura y seguridad
-                </a>
+                </a> */}
               </div>
-              <div className="auth-trusted">
-                Confiado por equipos que exigen control, trazabilidad y
-                cumplimiento.
-              </div>
+              <div className="auth-trusted"></div>
             </div>
 
             <div className="col-lg-5 order-1 order-lg-2 d-flex justify-content-center justify-content-lg-end">
               <div className="auth-card auth-card-float auth-card-slider">
-                <div className={`auth-card-track ${mode === "reset" ? "is-reset" : ""}`}>
+                <div
+                  className={`auth-card-track ${mode === "reset" ? "is-reset" : ""}`}
+                >
                   <div className="auth-card-panel">
-                    <form className="auth-card-panel-inner" onSubmit={handleSubmit}>
+                    <form
+                      className="auth-card-panel-inner"
+                      onSubmit={handleSubmit}
+                    >
                       <div className="auth-card-header">
                         <div className="eyebrow">Acceso seguro</div>
                         <h2>Iniciar sesión</h2>
-                        <p className="muted">Tu panel de control en primer plano.</p>
+                        <p className="muted">
+                          Panel de control en primer plano.
+                        </p>
                       </div>
                       <div className="form-grid">
                         <input
@@ -162,7 +166,9 @@ export function LoginPage() {
                           placeholder="contraseña"
                           type="password"
                           value={clientSecret}
-                          onChange={(event) => setClientSecret(event.target.value)}
+                          onChange={(event) =>
+                            setClientSecret(event.target.value)
+                          }
                           required
                         />
                       </div>
@@ -191,7 +197,9 @@ export function LoginPage() {
                     <div className="auth-card-panel-inner">
                       <div className="auth-card-header">
                         <div className="eyebrow">Recuperación</div>
-                        <h2>{token ? "Nueva contraseña" : "Recuperar contraseña"}</h2>
+                        <h2>
+                          {token ? "Nueva contraseña" : "Recuperar contraseña"}
+                        </h2>
                         <p className="muted">
                           {token
                             ? "Define una nueva contraseña."
@@ -225,13 +233,17 @@ export function LoginPage() {
                             type="password"
                             placeholder="Nueva contraseña"
                             value={resetPassword}
-                            onChange={(event) => setResetPassword(event.target.value)}
+                            onChange={(event) =>
+                              setResetPassword(event.target.value)
+                            }
                           />
                           <input
                             type="password"
                             placeholder="Confirmar contraseña"
                             value={resetConfirm}
-                            onChange={(event) => setResetConfirm(event.target.value)}
+                            onChange={(event) =>
+                              setResetConfirm(event.target.value)
+                            }
                           />
                           <button
                             className="btn primary"
@@ -239,16 +251,18 @@ export function LoginPage() {
                             disabled={resetLoading}
                             type="button"
                           >
-                            {resetLoading ? "Guardando…" : "Actualizar contraseña"}
+                            {resetLoading
+                              ? "Guardando…"
+                              : "Actualizar contraseña"}
                           </button>
                         </div>
                       )}
 
                       {resetDone && !token && (
                         <div className="info-banner">
-                          Si el usuario existe, hemos enviado un email con el enlace de
-                          recuperación. En desarrollo, revisa los logs del backend
-                          (Ethereal).
+                          Si el usuario existe, hemos enviado un email con el
+                          enlace de recuperación. En desarrollo, revisa los logs
+                          del backend (Ethereal).
                         </div>
                       )}
 
@@ -258,7 +272,9 @@ export function LoginPage() {
                         </div>
                       )}
 
-                      {resetError && <div className="error-banner">{resetError}</div>}
+                      {resetError && (
+                        <div className="error-banner">{resetError}</div>
+                      )}
 
                       <button
                         className="btn"
@@ -279,7 +295,7 @@ export function LoginPage() {
         </div>
       </section>
 
-      <section className="auth-section" id="capabilities">
+      {/* <section className="auth-section" id="capabilities">
         <div className="container">
           <div className="auth-section-header">
             <div className="eyebrow">Capacidades clave</div>
@@ -313,9 +329,9 @@ export function LoginPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
-      <section className="auth-section alt" id="architecture">
+      {/* <section className="auth-section alt" id="architecture">
         <div className="container">
           <div className="auth-section-header">
             <div className="eyebrow">Arquitectura y seguridad</div>
@@ -349,7 +365,7 @@ export function LoginPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       <footer className="auth-footer">
         <div className="container auth-footer-inner">
