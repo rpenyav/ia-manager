@@ -1,5 +1,7 @@
 server:
   port: ${APP_PORT:3000}
+  error:
+    include-stacktrace: ${SERVER_ERROR_INCLUDE_STACKTRACE:never}
 
 spring:
   datasource:
@@ -39,3 +41,9 @@ management:
     web:
       exposure:
         include: health,info
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    org.springframework: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK:INFO}
+    org.hibernate: ${LOGGING_LEVEL_ORG_HIBERNATE:ERROR}
