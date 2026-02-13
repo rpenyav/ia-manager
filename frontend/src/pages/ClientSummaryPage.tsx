@@ -144,6 +144,7 @@ export function ClientSummaryPage() {
   });
   const [apiKeys, setApiKeys] = useState<ApiKeySummary[]>([]);
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
+  const [assignServicesModalOpen, setAssignServicesModalOpen] = useState(false);
   const [newApiKeyName, setNewApiKeyName] = useState("");
   const [createdApiKey, setCreatedApiKey] = useState<string | null>(null);
   const [apiKeyBusy, setApiKeyBusy] = useState(false);
@@ -2382,6 +2383,14 @@ export function ClientSummaryPage() {
                   activar servicios.
                 </div>
               )}
+              {canManageSubscription && (
+                <button
+                  className="btn primary"
+                  onClick={() => setAssignServicesModalOpen(true)}
+                >
+                  Asignar servicios
+                </button>
+              )}
             </div>
 
             {!(isTenant && pricingSelection.length === 0) && (
@@ -3587,6 +3596,283 @@ export function ClientSummaryPage() {
           </>
         )}
       </div>
+
+      {assignServicesModalOpen && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setAssignServicesModalOpen(false)}
+        >
+          <div className="modal modal-wide" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <div className="eyebrow">Servicios</div>
+                <h3>Asignar servicios</h3>
+              </div>
+              <button className="btn" onClick={() => setAssignServicesModalOpen(false)}>
+                Cerrar
+              </button>
+            </div>
+            <div className="modal-body">
+              <div>
+                <h3>Anexo de servicio</h3>
+                <p className="muted">
+                  Añade un servicio a la suscripción. El importe se reflejará
+                  en la factura de la suscripción.
+                </p>
+              </div>
+              {!subscription && (
+                <div className="muted">
+                  Crea una suscripción para añadir servicios.
+                </div>
+              )}
+              {subscription && !canManageSubscription && (
+                <div className="muted">
+                  No tienes permisos para gestionar servicios.
+                </div>
+              )}
+              {subscription && canManageSubscription && (
+                <>
+                  {addonError && <div className="error-banner">{addonError}</div>}
+                  {addonSelectOptions.length === 0 ? (
+                    <div className="muted">
+                      No hay servicios disponibles para anexar.
+                    </div>
+                  ) : (
+                    <div className="form-grid">
+                      <label className="full-row">
+                        Servicio a añadir
+                        <select
+                          value={addonServiceCode}
+                          onChange={(event) =>
+                            setAddonServiceCode(event.target.value)
+                          }
+                        >
+                          <option value="">Selecciona un servicio</option>
+                          {addonSelectOptions.map((service) => (
+                            <option
+                              key={service.serviceCode}
+                              value={service.serviceCode}
+                            >
+                              {service.name} ·{" "}
+                              {formatEur(
+                                subscription.period === "annual"
+                                  ? service.priceAnnualEur
+                                  : service.priceMonthlyEur,
+                              )}
+                              {service.subscriptionStatus === "pending_removal"
+                                ? " · restaurar"
+                                : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {addonAlreadyAdded && (
+                        <div className="info-banner full-row">
+                          Este servicio ya está añadido a la suscripción.
+                        </div>
+                      )}
+                      {addonService?.endpointsEnabled !== false && (
+                        <div className="info-banner full-row">
+                          Este servicio requiere endpoints. Para activar
+                          endpoints insert es obligatorio configurar los
+                          endpoints tras la contratación.
+                        </div>
+                      )}
+                      <div className="form-actions">
+                        <button
+                          className="btn primary"
+                          onClick={handleAddServiceAddon}
+                          disabled={
+                            addonBusy ||
+                            !addonServiceCode ||
+                            !hasTenantApiKey ||
+                            addonAlreadyAdded
+                          }
+                        >
+                          {addonBusy ? "Añadiendo..." : "Añadir servicio"}
+                        </button>
+                        {addonService?.endpointsEnabled !== false &&
+                          addonService && (
+                            <button
+                              className="btn"
+                              onClick={() =>
+                                setAddonEndpointsExpanded((prev) => !prev)
+                              }
+                              disabled={addonBusy}
+                            >
+                              {addonEndpointsExpanded
+                                ? "Ocultar endpoints"
+                                : "Añadir endpoints"}
+                            </button>
+                          )}
+                      </div>
+                      {addonService?.endpointsEnabled !== false &&
+                        addonService &&
+                        addonEndpointsExpanded && (
+                          <div className="endpoint-editor full-row">
+                            <label className="full-row">
+                              Endpoints (JSON por línea con label)
+                              <textarea
+                                rows={3}
+                                placeholder='{"label":"Chat principal","method":"POST","path":"/v1/chat"}\n{"label":"Salud","method":"GET","path":"/health"}'
+                                value={addonEndpointsInput}
+                                onChange={(event) => {
+                                  setAddonEndpointsInput(event.target.value);
+                                  if (addonEndpointsError) {
+                                    setAddonEndpointsError(null);
+                                  }
+                                }}
+                              />
+                            </label>
+                            {!addonAlreadyAdded && (
+                              <div className="info-banner full-row">
+                                Añade primero el servicio a la suscripción
+                                para guardar endpoints.
+                              </div>
+                            )}
+                            {addonEndpointsError && (
+                              <div className="error-banner full-row">
+                                {addonEndpointsError}
+                              </div>
+                            )}
+                            <div className="form-actions">
+                              <button
+                                className="btn primary"
+                                onClick={handleAddAddonEndpoints}
+                                disabled={
+                                  addonEndpointsBusy ||
+                                  !addonEndpointsInput.trim()
+                                }
+                              >
+                                {addonEndpointsBusy
+                                  ? "Guardando..."
+                                  : "Guardar endpoints"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                    </div>
+                  )}
+                  {addonService && (
+                    <>
+                      <div className="info-banner">
+                        Valores para configurar la app de terceros. Ellos se
+                        encargarán de colocarlos en su `.env`. La API key solo
+                        se muestra al crearla para poder copiarla.
+                      </div>
+                      <div className="kv-grid">
+                        <div className="kv-item">
+                          <span className="kv-label">URL de la API</span>
+                          <span className="kv-value">
+                            {addonEnvValues?.apiBaseUrl || "—"}
+                          </span>
+                        </div>
+                        <div className="kv-item">
+                          <span className="kv-label">API key</span>
+                          <span className="kv-value kv-row">
+                            <span className="kv-text">
+                              {addonEnvValues?.apiKey
+                                ? addonEnvValues.apiKey
+                                : hasTenantApiKey
+                                  ? "API key activa (no visible)"
+                                  : "No disponible"}
+                            </span>
+                            {addonEnvValues?.apiKey && (
+                              <button
+                                className="btn small"
+                                onClick={() =>
+                                  handleCopy(addonEnvValues.apiKey, "API key")
+                                }
+                              >
+                                Copiar
+                              </button>
+                            )}
+                          </span>
+                        </div>
+                        <div className="kv-item">
+                          <span className="kv-label">Provider ID</span>
+                          <span className="kv-value">
+                            {addonEnvValues?.providerId || "—"}
+                          </span>
+                        </div>
+                        <div className="kv-item">
+                          <span className="kv-label">Model</span>
+                          <span className="kv-value">
+                            {addonEnvValues?.model || "—"}
+                          </span>
+                        </div>
+                        <div className="kv-item">
+                          <span className="kv-label">Tenant ID</span>
+                          <span className="kv-value">
+                            {addonEnvValues?.tenantId || "—"}
+                          </span>
+                        </div>
+                        <div className="kv-item">
+                          <span className="kv-label">Chat endpoint</span>
+                          <span className="kv-value">
+                            {addonEnvValues?.chatEndpoint || "—"}
+                          </span>
+                        </div>
+                      </div>
+                      {addonService.endpointsEnabled !== false ? (
+                        addonEndpoints.length > 0 ? (
+                          <div>
+                            <div className="muted">
+                              Endpoints configurados (se listan con su método).
+                            </div>
+                            <div className="endpoint-list">
+                              {addonEndpoints.map((endpoint) => (
+                                <div className="endpoint-item" key={endpoint.id}>
+                                  <span className="endpoint-method">
+                                    {endpoint.method}
+                                  </span>
+                                  <span className="endpoint-path">
+                                    {endpoint.path}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="info-banner">
+                            Este servicio aún no tiene endpoints configurados.
+                            Añádelos arriba en JSON con label, una línea por
+                            endpoint.
+                          </div>
+                        )
+                      ) : (
+                        <div className="muted">
+                          Este servicio no requiere endpoints.
+                        </div>
+                      )}
+                      {canManageApiKeys && !createdApiKey && (
+                        <div className="form-grid">
+                          <button
+                            className="btn"
+                            onClick={() => {
+                              setNewApiKeyName(
+                                `Servicio ${addonService.name}`,
+                              );
+                              setCreatedApiKey(null);
+                              setApiKeyModalOpen(true);
+                            }}
+                          >
+                            Generar API key
+                          </button>
+                          <p className="muted">
+                            Estos datos sirven para configurar el chatbot en la
+                            aplicación del cliente.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {serviceModalOpen && activeService && (
         <div className="modal-backdrop" onClick={closeServiceModal}>
