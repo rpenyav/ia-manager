@@ -92,6 +92,17 @@ public class PricingService {
         .orElse(null);
   }
 
+  public PricingModel resolveById(String pricingId) {
+    if (pricingId == null || pricingId.isBlank()) {
+      return null;
+    }
+    PricingModel model = pricingRepository.findById(pricingId).orElse(null);
+    if (model == null || !model.isEnabled()) {
+      return null;
+    }
+    return model;
+  }
+
   public double calculateCost(PricingModel entry, int tokensIn, int tokensOut) {
     if (entry == null) {
       return 0d;

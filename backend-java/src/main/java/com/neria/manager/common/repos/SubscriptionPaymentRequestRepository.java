@@ -14,4 +14,8 @@ public interface SubscriptionPaymentRequestRepository
 
   Optional<SubscriptionPaymentRequest> findFirstByTenantIdAndStatusOrderByCreatedAtDesc(
       String tenantId, String status);
+
+  void deleteByTenantId(String tenantId);
+
+  void deleteBySubscriptionId(String subscriptionId);
 }

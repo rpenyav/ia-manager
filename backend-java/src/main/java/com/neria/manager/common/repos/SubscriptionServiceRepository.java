@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SubscriptionServiceRepository extends JpaRepository<SubscriptionService, String> {
   List<SubscriptionService> findBySubscriptionId(String subscriptionId);
 
+  void deleteBySubscriptionId(String subscriptionId);
+
   List<SubscriptionService> findBySubscriptionIdAndStatusAndActivateAtLessThanEqual(
       String subscriptionId, String status, LocalDateTime time);
 

@@ -15,6 +15,8 @@ const titleMap: Record<string, string> = {
   "/audit": "Audit",
   "/docs": "Documentation",
   "/settings": "Settings",
+  "/services": "Servicios",
+  "/services/new": "Servicios",
   "/observability": "Observability",
   "/profile": "Perfil",
   "/admin/users": "Usuarios",
@@ -22,12 +24,21 @@ const titleMap: Record<string, string> = {
 };
 
 export function DashboardLayout() {
-  const { user, name, role, tenantId: authTenantId, mustChangePassword, logout } = useAuth();
+  const {
+    user,
+    name,
+    role,
+    tenantId: authTenantId,
+    mustChangePassword,
+    logout,
+  } = useAuth();
   const { tenants, selectedTenant, selectedTenantId, setSelectedTenantId } =
     useDashboard();
   const location = useLocation();
   const navigate = useNavigate();
-  const pageTitle = titleMap[location.pathname] || "Neria Manager";
+  const pageTitle =
+    titleMap[location.pathname] ||
+    (location.pathname.startsWith("/services") ? "Servicios" : "Neria Manager");
   const [activeEntry, setActiveEntry] = useState<DocumentationEntry | null>(
     null,
   );
@@ -36,13 +47,17 @@ export function DashboardLayout() {
   const navItems =
     role === "tenant"
       ? [
-          { label: "Cliente", to: authTenantId ? `/clients/${authTenantId}` : "/" },
+          {
+            label: "Cliente",
+            to: authTenantId ? `/clients/${authTenantId}` : "/",
+          },
           { label: "Docs", to: "/docs" },
           { label: "Perfil", to: "/profile" },
         ]
       : [
           { label: "Overview", to: "/" },
           { label: "Tenants", to: "/tenants" },
+          ...(role === "admin" ? [{ label: "Servicios", to: "/services" }] : []),
           { label: "Usage", to: "/usage" },
           { label: "Audit", to: "/audit" },
           { label: "Docs", to: "/docs" },
@@ -119,7 +134,11 @@ export function DashboardLayout() {
             <div className="header-actions-left">
               {(name || user) && (
                 <div className="pill user-pill">
-                  <NavLink to="/profile" className="avatar-link" aria-label="Ir al perfil">
+                  <NavLink
+                    to="/profile"
+                    className="avatar-link"
+                    aria-label="Ir al perfil"
+                  >
                     <span
                       className={`avatar-circle ${
                         role === "admin" ? "avatar-admin" : "avatar-user"
@@ -179,9 +198,7 @@ export function DashboardLayout() {
       <main className="main">
         <div className="page-header">
           {!isClientRoute && <h1>{pageTitle}</h1>}
-          {isClientRoute && selectedTenant && (
-            <h2>Tenant activo: {selectedTenant.name}</h2>
-          )}
+          {isClientRoute && selectedTenant && <h2>{selectedTenant.name}</h2>}
         </div>
 
         <Outlet />

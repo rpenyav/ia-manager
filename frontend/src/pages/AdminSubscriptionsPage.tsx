@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { DataTable, DataTableColumn } from '../components/DataTable';
+import { StatusBadgeIcon } from '../components/StatusBadgeIcon';
 import { PageWithDocs } from '../components/PageWithDocs';
 import type { AdminSubscriptionSummary } from '../types';
 import { formatEur } from '../utils/currency';
@@ -66,9 +67,7 @@ export function AdminSubscriptionsPage() {
       label: 'Estado',
       sortable: true,
       render: (row) => (
-        <span className={`status ${row.subscription?.status || 'disabled'}`}>
-          {row.subscription?.status || 'sin'}
-        </span>
+        <StatusBadgeIcon status={row.subscription?.status || 'disabled'} />
       )
     },
     {

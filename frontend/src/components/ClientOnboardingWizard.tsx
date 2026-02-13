@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useDashboard } from '../dashboard';
 import { emitToast } from '../toast';
+import { copyToClipboard } from '../utils/clipboard';
 import { FieldWithHelp } from './FieldWithHelp';
 
 type Props = {
@@ -419,12 +420,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
   };
 
   const copyValue = async (value: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      emitToast(`${label} copiado`);
-    } catch (err) {
-      emitToast('No se pudo copiar', 'error');
-    }
+    await copyToClipboard(value, label);
   };
 
   if (!open) {

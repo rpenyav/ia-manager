@@ -20,6 +20,17 @@ public class PoliciesService {
     return repository.findByTenantId(tenantId).orElse(null);
   }
 
+  public Policy getByIdForTenant(String tenantId, String policyId) {
+    if (policyId == null || policyId.isBlank()) {
+      return null;
+    }
+    Policy policy = repository.findById(policyId).orElse(null);
+    if (policy == null) {
+      return null;
+    }
+    return tenantId != null && tenantId.equals(policy.getTenantId()) ? policy : null;
+  }
+
   public List<Policy> listAll() {
     return repository.findAll();
   }

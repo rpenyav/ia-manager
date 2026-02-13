@@ -6,6 +6,7 @@ import type { Tenant } from '../types';
 import { FieldWithHelp } from '../components/FieldWithHelp';
 import { PageWithDocs } from '../components/PageWithDocs';
 import { DataTable } from '../components/DataTable';
+import { StatusBadgeIcon } from '../components/StatusBadgeIcon';
 
 export function TenantsPage() {
   const { role } = useAuth();
@@ -177,9 +178,7 @@ export function TenantsPage() {
                   key: 'status',
                   label: 'Estado',
                   sortable: true,
-                  render: (tenant: Tenant) => (
-                    <span className={`status ${tenant.status}`}>{tenant.status}</span>
-                  )
+                  render: (tenant: Tenant) => <StatusBadgeIcon status={tenant.status} />
                 },
                 ...(isAdmin
                   ? [

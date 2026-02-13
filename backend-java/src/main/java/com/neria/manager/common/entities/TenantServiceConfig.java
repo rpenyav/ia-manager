@@ -29,6 +29,18 @@ public class TenantServiceConfig {
   @Column(columnDefinition = "text")
   private String systemPrompt;
 
+  @Column(name = "apiBaseUrl", length = 255)
+  private String apiBaseUrl;
+
+  @Column(name = "providerId", length = 36)
+  private String providerId;
+
+  @Column(name = "pricingId", length = 36)
+  private String pricingId;
+
+  @Column(name = "policyId", length = 36)
+  private String policyId;
+
   @Column(name = "createdAt")
   private LocalDateTime createdAt;
 

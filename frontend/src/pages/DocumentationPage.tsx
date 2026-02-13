@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { FieldWithHelp } from '../components/FieldWithHelp';
 import { DataTable } from '../components/DataTable';
+import { StatusBadgeIcon } from '../components/StatusBadgeIcon';
 import type { DocumentationEntry } from '../types';
 import Swal from 'sweetalert2';
 
@@ -19,7 +20,8 @@ const MENU_OPTIONS = [
   'notifications',
   'settings',
   'observability',
-  'documentation'
+  'documentation',
+  'tenant-services'
 ];
 
 type FilterState = {
@@ -154,9 +156,7 @@ export function DocumentationPage() {
       label: 'Estado',
       sortable: true,
       render: (entry: DocumentationEntry) => (
-        <span className={`status ${entry.enabled ? 'active' : 'disabled'}`}>
-          {entry.enabled ? 'active' : 'disabled'}
-        </span>
+        <StatusBadgeIcon status={entry.enabled} />
       )
     },
     ...(showAdminActions

@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS service_catalog (
   code varchar(64) NOT NULL,
   name varchar(120) NOT NULL,
   description text NOT NULL,
+  endpointsEnabled tinyint(1) NOT NULL DEFAULT 1,
   priceMonthlyEur decimal(10,2) NOT NULL,
   priceAnnualEur decimal(10,2) NOT NULL,
   enabled tinyint(1) NOT NULL DEFAULT 1,
@@ -210,6 +211,38 @@ CREATE TABLE IF NOT EXISTS subscription_payment_requests (
   createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS tenant_invoices (
+  id varchar(36) NOT NULL,
+  tenantId varchar(36) NOT NULL,
+  subscriptionId varchar(36) NULL,
+  paymentRequestId varchar(36) NULL,
+  period varchar(16) NOT NULL,
+  basePriceEur decimal(10,2) NOT NULL DEFAULT 0,
+  servicesPriceEur decimal(10,2) NOT NULL DEFAULT 0,
+  totalEur decimal(10,2) NOT NULL DEFAULT 0,
+  currency varchar(3) NOT NULL DEFAULT 'EUR',
+  status varchar(16) NOT NULL DEFAULT 'pending',
+  issuedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  paidAt timestamp NULL,
+  periodStart timestamp NULL,
+  periodEnd timestamp NULL,
+  createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_tenant_invoices_tenant (tenantId)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS tenant_invoice_items (
+  id varchar(36) NOT NULL,
+  invoiceId varchar(36) NOT NULL,
+  serviceCode varchar(64) NOT NULL,
+  description varchar(255) NULL,
+  priceEur decimal(10,2) NOT NULL DEFAULT 0,
+  status varchar(16) NOT NULL DEFAULT 'active',
+  createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_invoice_items_invoice (invoiceId)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS documentation_entries (

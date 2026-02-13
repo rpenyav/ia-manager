@@ -27,6 +27,9 @@ import { AdminUsersPage } from "./pages/AdminUsersPage";
 import { AdminSubscriptionsPage } from "./pages/AdminSubscriptionsPage";
 import { BillingConfirmPage } from "./pages/BillingConfirmPage";
 import { BillingSuccessPage } from "./pages/BillingSuccessPage";
+import { ServicesPage } from "./pages/ServicesPage";
+import { ServiceEditorPage } from "./pages/ServiceEditorPage";
+import { TenantServiceDetailPage } from "./pages/TenantServiceDetailPage";
 
 function App() {
   return (
@@ -61,11 +64,21 @@ function App() {
                   path="clients/:tenantId"
                   element={<ClientSummaryPage />}
                 />
+                <Route
+                  path="clients/:tenantId/services/:serviceCode"
+                  element={<TenantServiceDetailPage />}
+                />
                 <Route path="docs" element={<DocumentationPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="observability" element={<ObservabilityPage />} />
                 <Route element={<AdminRoute />}>
                   <Route path="settings" element={<SettingsPage />} />
+                  <Route path="services" element={<ServicesPage />} />
+                  <Route path="services/new" element={<ServiceEditorPage />} />
+                  <Route
+                    path="services/:serviceId"
+                    element={<ServiceEditorPage />}
+                  />
                   <Route path="admin/users" element={<AdminUsersPage />} />
                   <Route
                     path="admin/subscriptions"

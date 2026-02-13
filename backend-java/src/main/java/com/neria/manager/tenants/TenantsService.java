@@ -59,6 +59,9 @@ public class TenantsService {
       tenant.setAuthPasswordHash(tenantAuthService.hashPassword(dto.authPassword));
       tenant.setAuthMustChangePassword(true);
     }
+    if (dto.billingEmail != null) {
+      tenant.setBillingEmail(dto.billingEmail);
+    }
     applyProfileFields(tenant, dto);
     tenant.setUpdatedAt(LocalDateTime.now());
     return repository.save(tenant);

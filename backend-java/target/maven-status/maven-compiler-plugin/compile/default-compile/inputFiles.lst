@@ -17,6 +17,8 @@
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/auth/AuthController.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/auth/AuthService.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/auth/TenantAuthService.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/billing/TenantInvoicesController.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/billing/TenantInvoicesService.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chat/ChatAdminController.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chat/ChatAuthController.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chat/ChatAuthService.java
@@ -46,6 +48,8 @@
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/SubscriptionService.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/SystemSetting.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/Tenant.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantInvoice.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantInvoiceItem.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantPricing.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantServiceConfig.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantServiceEndpoint.java
@@ -72,6 +76,8 @@
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/SubscriptionRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/SubscriptionServiceRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/SystemSettingRepository.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantInvoiceItemRepository.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantInvoiceRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantPricingRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantServiceConfigRepository.java

@@ -9,4 +9,6 @@ public interface ServiceCatalogRepository extends JpaRepository<ServiceCatalog, 
   List<ServiceCatalog> findAllByOrderByNameAsc();
 
   Optional<ServiceCatalog> findByCode(String code);
+
+  List<ServiceCatalog> findAllByCodeIn(List<String> codes);
 }

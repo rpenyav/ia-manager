@@ -94,7 +94,19 @@ export const fieldHelp = {
   runtimeModel: 'Modelo del proveedor que se utilizara en la llamada.',
   runtimePayload:
     'Payload JSON enviado al adapter (ej: {"messages":[{"role":"user","content":"Hola"}]}).',
-  tenantsBillingEmail: 'Email del titular para facturación y pagos de la suscripción.'
+  serviceSystemPrompt:
+    'Define el comportamiento global del servicio: tono, reglas y contexto. Evita datos sensibles y mantén instrucciones claras.',
+  tenantsBillingEmail: 'Email del titular para facturación y pagos de la suscripción.',
+  serviceCode:
+    'Identificador unico del servicio. Solo minusculas, numeros y guiones.',
+  serviceName: 'Nombre visible del servicio en el catalogo.',
+  serviceDescription: 'Descripcion principal del servicio.',
+  serviceApiBaseUrl: 'URL base de la API a la que apuntara el servicio en integraciones externas.',
+  serviceEndpointsEnabled:
+    'Indica si este servicio permite configurar endpoints por tenant.',
+  servicePriceMonthly: 'Precio mensual en EUR.',
+  servicePriceAnnual: 'Precio anual en EUR.',
+  serviceEnabled: 'Activa o desactiva el servicio para nuevos tenants.'
 } as const;
 
 export type FieldHelpKey = keyof typeof fieldHelp;

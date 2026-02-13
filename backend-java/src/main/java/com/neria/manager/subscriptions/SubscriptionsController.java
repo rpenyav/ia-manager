@@ -2,7 +2,11 @@ package com.neria.manager.subscriptions;
 
 import com.neria.manager.subscriptions.SubscriptionsService.CreateSubscriptionRequest;
 import com.neria.manager.subscriptions.SubscriptionsService.UpdateSubscriptionRequest;
+import com.neria.manager.common.security.AuthContext;
+import com.neria.manager.common.security.AuthUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,5 +39,13 @@ public class SubscriptionsController {
   public Map<String, Object> update(
       @PathVariable String tenantId, @RequestBody UpdateSubscriptionRequest dto) {
     return subscriptionsService.update(tenantId, dto);
+  }
+
+  @DeleteMapping
+  public Map<String, Object> delete(
+      @PathVariable String tenantId, HttpServletRequest request) {
+    AuthContext auth = AuthUtils.requireAuth(request);
+    AuthUtils.requireAdmin(auth);
+    return subscriptionsService.deleteByTenantId(tenantId);
   }
 }

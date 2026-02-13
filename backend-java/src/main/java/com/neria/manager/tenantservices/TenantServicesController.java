@@ -41,7 +41,15 @@ public class TenantServicesController {
       @PathVariable String serviceCode,
       @RequestBody UpdateConfigRequest dto) {
     requireScope(request, tenantId);
-    return service.updateConfig(tenantId, serviceCode, dto.status, dto.systemPrompt);
+    return service.updateConfig(
+        tenantId,
+        serviceCode,
+        dto.status,
+        dto.systemPrompt,
+        dto.apiBaseUrl,
+        dto.providerId,
+        dto.pricingId,
+        dto.policyId);
   }
 
   @GetMapping("/{serviceCode}/endpoints")
@@ -132,5 +140,9 @@ public class TenantServicesController {
   public static class UpdateConfigRequest {
     public String status;
     public String systemPrompt;
+    public String apiBaseUrl;
+    public String providerId;
+    public String pricingId;
+    public String policyId;
   }
 }

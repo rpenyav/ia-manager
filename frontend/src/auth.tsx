@@ -114,7 +114,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (import.meta.env.MODE === 'production' && baseUrl.includes('localhost')) {
       baseUrl = 'https://backend-production-fc6a.up.railway.app';
     }
-    fetch(`${baseUrl}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => undefined);
+    const storedToken = tokenStorage.get();
+    fetch(`${baseUrl}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined
+    }).catch(() => undefined);
     cookie.clear('pm_auth_user');
     cookie.clear('pm_auth_name');
     cookie.clear('pm_auth_tenant');
@@ -154,16 +159,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         return;
       }
-      const storedToken = tokenStorage.get();
+      const storedToken = tokenStorage.get() || (token && token !== 'cookie' ? token : null);
       const response = await fetch(`${baseUrl}/auth/session`, {
         method: 'GET',
         credentials: 'include',
         headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined
       });
       if (!response.ok) {
-        tokenStorage.clear();
-        setToken(null);
-        setUser(null);
+        if (!storedToken) {
+          tokenStorage.clear();
+          setToken(null);
+          setUser(null);
+        }
         setLoading(false);
         return;
       }

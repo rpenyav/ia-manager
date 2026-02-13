@@ -1,62 +1,74 @@
-# Provider Manager IA
+# Provider Manager IA (Neria Manager)
 
-Proyecto monorepo con backend NestJS y frontend backoffice en React/Vite.
+Monorepo con backoffice en React/Vite y backend Java (Spring Boot) como stack principal. El backend NestJS queda como legacy.
+
+## Estado actual (balance funcional)
+- Backend activo: `backend-java` (Spring Boot + JPA).
+- Backend legacy: `backend-javascript` (NestJS).
+- Frontend: `frontend` (React/Vite), login con cookies + fallback `Authorization: Bearer` (token en `localStorage`).
+- Autenticación: admin + tenant (JWT), API key para runtime.
+- Módulos core replicados: tenants, providers, policies, pricing, usage, audit, webhooks, notifications, subscriptions + billing.
+- Servicios por tenant: tablas y endpoints para `tenant_services`, `tenant_service_users`, `tenant_service_configs`, `tenant_service_endpoints`.
+- Migraciones manuales en carpeta `migrations/`.
 
 ## Estructura
-- `backend`: API administrativa + runtime
-- `frontend`: Backoffice UI/UX
+- `backend-java`: API principal (Spring Boot).
+- `backend-javascript`: backend legacy (NestJS).
+- `frontend`: Backoffice UI/UX.
+- `migrations`: SQL incremental para cambios recientes.
 
-## Backend (NestJS)
+## Backend (Spring Boot)
 
 ### Requisitos
-- Node 18+
+- Java 17
 - MySQL 8+
-- Redis (cache/queues)
-- SQS (opcional, LocalStack en Docker)
 
 ### Configuración
-- Copia `backend/.env.example` a `backend/.env` y completa valores.
+Variables principales (ejemplos):
+- `APP_PORT`
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- `AUTH_JWT_SECRET` (>= 32 chars)
+- `CHAT_JWT_SECRET` (>= 32 chars)
+- `CORS_ORIGINS` (CSV, ej: `https://frontend-production-ad1f.up.railway.app,http://localhost:5173`)
+- `AUTH_COOKIE_SECURE` / `AUTH_COOKIE_SAMESITE`
 
-### Scripts
-- `npm install`
-- `npm run start:dev`
-- `npm run migration:run`
-- `npm run seed:pricing`
-- `npm run seed:demo`
+### Ejecutar local
+```bash
+cd backend-java
+set -a; source .env; set +a
+mvn spring-boot:run
+```
 
-### Endpoints principales
+### Endpoints principales (paridad con NestJS)
 - `POST /auth/token` (JWT admin)
-- `POST /auth/api-keys` (API key por tenant)
-- `GET /usage/summary` y `GET /usage/alerts`
-- `POST /usage/alerts/notify` (email/Slack)
-- `GET /audit` (últimos eventos)
-- `POST /pricing` (tarifas por proveedor/modelo)
-- `POST /webhooks` (webhooks de auditoría)
-- `POST /notifications` (canales email/Slack)
+- `POST /auth/login` (admin/tenant)
+- `GET /auth/session` (session actual)
+- `GET /tenants`, `PATCH /tenants/:id`
+- `GET /policies`, `PUT /policies`
+- `GET /usage/summary`, `GET /usage/alerts`, `POST /usage/alerts/notify`
+- `GET /audit`
+- `GET /pricing`
+- `GET /services/catalog`
+- `GET|POST|PATCH /tenants/:tenantId/subscription`
+- `POST /billing/confirm` (mock/Stripe)
 
-### Credenciales de proveedores (JSON)
-- OpenAI: `{ "apiKey": "...", "baseUrl": "https://api.openai.com" }`
-- Azure OpenAI: `{ "endpoint": "https://<resource>.openai.azure.com", "apiKey": "...", "deployment": "...", "apiVersion": "2024-02-15-preview" }`
-- AWS Bedrock: `{ "accessKeyId": "...", "secretAccessKey": "...", "region": "us-east-1", "modelId": "anthropic.claude-3-sonnet-20240229-v1:0" }`
-- Google Vertex: `{ "projectId": "...", "location": "us-central1", "model": "gemini-1.5-pro", "client_email": "...", "private_key": "..." }`
+## Migraciones SQL (manuales)
+Archivos recientes:
+- `migrations/2026-02-11_tenant_service_tables.sql`
+- `migrations/2026-02-11_add_service_code_to_usage_events.sql`
 
-### Webhooks
-Eventos: `audit.event`. Se envía JSON con firma HMAC opcional (`x-signature`) si el webhook tiene secreto.
+### Aplicar (local)
+```bash
+/Applications/XAMPP/bin/mysql -h localhost -P 3306 -u <user> -p <db_name> < migrations/2026-02-11_tenant_service_tables.sql
+/Applications/XAMPP/bin/mysql -h localhost -P 3306 -u <user> -p <db_name> < migrations/2026-02-11_add_service_code_to_usage_events.sql
+```
 
-### Pricing
-Registra tarifas por proveedor/modelo en `/pricing`. Usa `model="*"` para un default por proveedor.
-Seed automático en arranque con `PRICING_SEED_ON_STARTUP=true` o manual con `npm run seed:pricing`.
-
-### Notificaciones
-Canales `email` y `slack` en `/notifications`. Envío manual con `POST /usage/alerts/notify`.
-Envío automático con cron configurable: `ALERTS_CRON` y `ALERTS_MIN_INTERVAL_MINUTES`.
-
-### Demo seed
-`npm run seed:demo` crea un tenant demo, provider mock, policy y datos de uso/audit para probar el backoffice.
-También puede ejecutarse automáticamente al arrancar con `DEMO_SEED_ON_STARTUP=true`.
-
-### Módulos
-AuthModule, TenantsModule, ProvidersModule, PoliciesModule, RuntimeModule, AdaptersModule, RedactionModule, UsageModule, AuditModule, QueuesModule y ObservabilityModule.
+### Aplicar (Railway)
+Usa `railway connect mysql` y dentro del monitor:
+```
+SOURCE /path/absoluto/migrations/2026-02-11_tenant_service_tables.sql;
+SOURCE /path/absoluto/migrations/2026-02-11_add_service_code_to_usage_events.sql;
+```
 
 ## Frontend (Backoffice)
 
@@ -64,25 +76,20 @@ AuthModule, TenantsModule, ProvidersModule, PoliciesModule, RuntimeModule, Adapt
 - Node 18+
 
 ### Configuración
-- Copia `frontend/.env.example` a `frontend/.env`.
-- Define `VITE_API_KEY` o `VITE_AUTH_TOKEN` para autenticar.
+- `VITE_API_BASE_URL`
+- `VITE_API_KEY` (si aplica)
+- `VITE_AUTH_CLIENT_ID` / `VITE_AUTH_CLIENT_SECRET` (refresh token opcional)
 
-### Scripts
-- `npm install`
-- `npm run dev`
-
-## Criterios de aceptación (MVP)
-- Un tenant puede registrar su proveedor.
-- Las llamadas pasan por el manager.
-- El consumo queda auditado.
-- Los límites y el kill switch funcionan (rate limit + cache + validación de consumo diario).
+### Ejecutar local
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ## Postman
 Importa `postman/ProviderManagerIA.postman_collection.json`.
 
-## Docker (dev)
-1. Copia `backend/.env.example` a `backend/.env` y ajusta hosts para Docker (`DB_HOST=mysql`, `QUEUE_REDIS_HOST=redis`, `CACHE_REDIS_HOST=redis`).
-2. Copia `frontend/.env.example` a `frontend/.env`.
-3. `docker compose up --build`
-
-SQS local: usa `SQS_QUEUE_URL=http://localstack:4566/000000000000/provider-manager` y crea la cola en LocalStack si la necesitas.
+## Notas de seguridad
+- Para producción: `AUTH_COOKIE_SECURE=true` y `AUTH_COOKIE_SAMESITE=none`.
+- CORS con `*` + cookies no funciona; usa dominios explícitos.

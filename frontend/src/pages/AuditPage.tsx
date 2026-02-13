@@ -5,6 +5,7 @@ import type { AuditEvent } from '../types';
 import { PageWithDocs } from '../components/PageWithDocs';
 import { buildAuditStatusByDay, countAuditByAction } from '../utils/chartData';
 import { DataTable } from '../components/DataTable';
+import { StatusBadgeIcon } from '../components/StatusBadgeIcon';
 
 export function AuditPage() {
   const [audit, setAudit] = useState<AuditEvent[]>([]);
@@ -94,9 +95,7 @@ export function AuditPage() {
               key: 'status',
               label: 'Estado',
               sortable: true,
-              render: (item: AuditEvent) => (
-                <span className={`status ${item.status}`}>{item.status}</span>
-              )
+              render: (item: AuditEvent) => <StatusBadgeIcon status={item.status} />
             },
             {
               key: 'createdAt',

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 
 export type DataTableColumn<T> = {
   key: keyof T | string;
@@ -22,11 +22,11 @@ export function DataTable<T extends Record<string, any>>({
   getRowId,
   pageSize = 8,
   filterKeys,
-  onRowClick
+  onRowClick,
 }: Props<T>) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
@@ -41,7 +41,7 @@ export function DataTable<T extends Record<string, any>>({
           return false;
         }
         return String(value).toLowerCase().includes(needle);
-      })
+      }),
     );
   }, [data, query, filterKeys]);
 
@@ -59,10 +59,10 @@ export function DataTable<T extends Record<string, any>>({
       if (bVal === undefined || bVal === null) {
         return -1;
       }
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return sortDir === "asc" ? aVal - bVal : bVal - aVal;
       }
-      return sortDir === 'asc'
+      return sortDir === "asc"
         ? String(aVal).localeCompare(String(bVal))
         : String(bVal).localeCompare(String(aVal));
     });
@@ -71,91 +71,147 @@ export function DataTable<T extends Record<string, any>>({
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const paginated = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginated = sorted.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   const handleSort = (key: string, sortable?: boolean) => {
     if (!sortable) {
       return;
     }
     if (sortKey === key) {
-      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
       return;
     }
     setSortKey(key);
-    setSortDir('asc');
+    setSortDir("asc");
   };
+
+  const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
 
   return (
     <div className="data-table">
       <div className="data-table-controls">
         {filterKeys && filterKeys.length > 0 && (
-          <input
-            type="search"
-            placeholder="Buscar..."
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(1);
-            }}
-          />
+          <div className="data-table-search">
+            <span className="data-table-search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img" focusable="false">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.18 6.18 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.18 6.18 0 0 0 4.23-1.57l.27.28v.79L20 21.5 21.5 20zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14"
+                />
+              </svg>
+            </span>
+            <input
+              type="search"
+              placeholder="Buscar..."
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
+              className="form-control data-table-search-input"
+            />
+          </div>
         )}
         <div className="muted">{sorted.length} resultados</div>
       </div>
-      <div className="table">
-        <div
-          className="table-header"
-          style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
-        >
-          {columns.map((col) => (
-            <button
-              key={String(col.key)}
-              className={`table-header-cell ${col.sortable ? 'sortable' : ''}`}
-              onClick={() => handleSort(String(col.key), col.sortable)}
-              type="button"
+      <table className="table">
+        <thead>
+          <tr>
+            {columns.map((col) => {
+              const columnKey = String(col.key);
+              const isSorted = sortKey === columnKey;
+              return (
+                <th
+                  scope="col"
+                  key={columnKey}
+                  aria-sort={
+                    isSorted ? (sortDir === "asc" ? "ascending" : "descending") : "none"
+                  }
+                >
+                  {col.sortable ? (
+                    <button
+                      className="table-header-cell sortable"
+                      onClick={() => handleSort(columnKey, col.sortable)}
+                      type="button"
+                    >
+                      <span>{col.label}</span>
+                      {isSorted && (
+                        <span className="sort-indicator">
+                          {sortDir === "asc" ? "▲" : "▼"}
+                        </span>
+                      )}
+                    </button>
+                  ) : (
+                    <span className="table-header-cell">{col.label}</span>
+                  )}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {paginated.map((row) => (
+            <tr
+              key={getRowId(row)}
+              onClick={() => onRowClick?.(row)}
+              className={onRowClick ? "data-table-row clickable" : "data-table-row"}
             >
-              <span>{col.label}</span>
-              {sortKey === col.key && (
-                <span className="sort-indicator">{sortDir === 'asc' ? '▲' : '▼'}</span>
-              )}
-            </button>
+              {columns.map((col) => {
+                const cellValue = col.render
+                  ? col.render(row)
+                  : String(row[col.key as keyof T] ?? "");
+                return (
+                  <td key={`${getRowId(row)}-${String(col.key)}`}>
+                    {cellValue}
+                  </td>
+                );
+              })}
+            </tr>
           ))}
-        </div>
-        {paginated.map((row) => (
-          <div
-            className={`table-row${onRowClick ? ' clickable' : ''}`}
-            key={getRowId(row)}
-            onClick={() => onRowClick?.(row)}
-            style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
-          >
-            {columns.map((col) => (
-              <span className="table-cell" key={`${getRowId(row)}-${String(col.key)}`}>
-                {col.render ? col.render(row) : String(row[col.key as keyof T] ?? '')}
-              </span>
+        </tbody>
+      </table>
+      {totalPages > 1 && (
+        <nav aria-label="Page navigation">
+          <ul className="pagination justify-content-center">
+            <li className={`page-item${currentPage === 1 ? " disabled" : ""}`}>
+              <button
+                className="page-link"
+                type="button"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+            </li>
+            {pageNumbers.map((pageNumber) => (
+              <li
+                className={`page-item${pageNumber === currentPage ? " active" : ""}`}
+                key={pageNumber}
+              >
+                <button
+                  className="page-link"
+                  type="button"
+                  onClick={() => setPage(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              </li>
             ))}
-          </div>
-        ))}
-      </div>
-      <div className="data-table-pagination">
-        <button className="btn" onClick={() => setPage(1)} disabled={currentPage === 1}>
-          «
-        </button>
-        <button className="btn" onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={currentPage === 1}>
-          Anterior
-        </button>
-        <span className="muted">
-          Página {currentPage} / {totalPages}
-        </span>
-        <button
-          className="btn"
-          onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-          disabled={currentPage === totalPages}
-        >
-          Siguiente
-        </button>
-        <button className="btn" onClick={() => setPage(totalPages)} disabled={currentPage === totalPages}>
-          »
-        </button>
-      </div>
+            <li className={`page-item${currentPage === totalPages ? " disabled" : ""}`}>
+              <button
+                className="page-link"
+                type="button"
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </li>
+          </ul>
+        </nav>
+      )}
     </div>
   );
 }

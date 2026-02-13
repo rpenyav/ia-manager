@@ -8,4 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SubscriptionHistoryRepository extends JpaRepository<SubscriptionHistory, String> {
   Optional<SubscriptionHistory> findBySubscriptionIdAndStartedAt(
       String subscriptionId, LocalDateTime startedAt);
+
+  void deleteByTenantId(String tenantId);
+
+  void deleteBySubscriptionId(String subscriptionId);
 }

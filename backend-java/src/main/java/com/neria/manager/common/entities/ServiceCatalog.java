@@ -27,6 +27,12 @@ public class ServiceCatalog {
   @Column(columnDefinition = "text", nullable = false)
   private String description;
 
+  @Column(name = "apiBaseUrl", length = 255)
+  private String apiBaseUrl;
+
+  @Column(name = "endpointsEnabled", nullable = false)
+  private boolean endpointsEnabled;
+
   @Column(name = "priceMonthlyEur", precision = 10, scale = 2, nullable = false)
   private BigDecimal priceMonthlyEur;
 

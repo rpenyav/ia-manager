@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TenantPricingService {
@@ -28,25 +31,31 @@ public class TenantPricingService {
 
   public TenantPricingResponse getByTenantId(String tenantId) {
     if (tenantsService.getById(tenantId) == null) {
-      throw new IllegalArgumentException("Tenant not found");
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tenant not found");
     }
     List<TenantPricing> assignments = tenantPricingRepository.findByTenantId(tenantId);
     return new TenantPricingResponse(
         tenantId, assignments.stream().map(TenantPricing::getPricingId).toList());
   }
 
+  @Transactional
   public TenantPricingResponse upsert(String tenantId, TenantPricingUpdateRequest dto) {
     if (tenantsService.getById(tenantId) == null) {
-      throw new IllegalArgumentException("Tenant not found");
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tenant not found");
     }
     Set<String> unique = new HashSet<>(dto.pricingIds == null ? List.of() : dto.pricingIds);
     if (!unique.isEmpty()) {
-      long count = pricingRepository.findAllById(unique).size();
-      if (count != unique.size()) {
-        throw new IllegalArgumentException("One or more pricing entries not found");
+      List<String> found =
+          pricingRepository.findAllById(unique).stream().map(item -> item.getId()).toList();
+      if (found.size() != unique.size()) {
+        List<String> missing =
+            unique.stream().filter(id -> !found.contains(id)).toList();
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "Pricing entries not found: " + missing);
       }
     }
     tenantPricingRepository.deleteByTenantId(tenantId);
+    tenantPricingRepository.flush();
     if (unique.isEmpty()) {
       return new TenantPricingResponse(tenantId, List.of());
     }

@@ -5,11 +5,15 @@ import com.neria.manager.common.entities.Subscription;
 import com.neria.manager.common.entities.SubscriptionHistory;
 import com.neria.manager.common.entities.SubscriptionPaymentRequest;
 import com.neria.manager.common.entities.SubscriptionService;
+import com.neria.manager.common.entities.TenantInvoice;
+import com.neria.manager.common.entities.TenantInvoiceItem;
 import com.neria.manager.common.repos.ServiceCatalogRepository;
 import com.neria.manager.common.repos.SubscriptionHistoryRepository;
 import com.neria.manager.common.repos.SubscriptionPaymentRequestRepository;
 import com.neria.manager.common.repos.SubscriptionRepository;
 import com.neria.manager.common.repos.SubscriptionServiceRepository;
+import com.neria.manager.common.repos.TenantInvoiceItemRepository;
+import com.neria.manager.common.repos.TenantInvoiceRepository;
 import com.neria.manager.common.services.EmailService;
 import com.neria.manager.tenants.TenantsService;
 import com.stripe.Stripe;
@@ -21,6 +25,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +33,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -39,6 +46,8 @@ public class SubscriptionsService {
   private final SubscriptionHistoryRepository subscriptionHistoryRepository;
   private final SubscriptionPaymentRequestRepository paymentRepository;
   private final ServiceCatalogRepository catalogRepository;
+  private final TenantInvoiceRepository invoiceRepository;
+  private final TenantInvoiceItemRepository invoiceItemRepository;
   private final TenantsService tenantsService;
   private final EmailService emailService;
 
@@ -48,6 +57,8 @@ public class SubscriptionsService {
       SubscriptionHistoryRepository subscriptionHistoryRepository,
       SubscriptionPaymentRequestRepository paymentRepository,
       ServiceCatalogRepository catalogRepository,
+      TenantInvoiceRepository invoiceRepository,
+      TenantInvoiceItemRepository invoiceItemRepository,
       TenantsService tenantsService,
       EmailService emailService) {
     this.subscriptionRepository = subscriptionRepository;
@@ -55,6 +66,8 @@ public class SubscriptionsService {
     this.subscriptionHistoryRepository = subscriptionHistoryRepository;
     this.paymentRepository = paymentRepository;
     this.catalogRepository = catalogRepository;
+    this.invoiceRepository = invoiceRepository;
+    this.invoiceItemRepository = invoiceItemRepository;
     this.tenantsService = tenantsService;
     this.emailService = emailService;
   }
@@ -107,7 +120,11 @@ public class SubscriptionsService {
 
   private Map<String, Object> buildResponse(Subscription subscription) {
     if (subscription == null) {
-      return Map.of("subscription", null, "services", List.of(), "totals", null);
+      Map<String, Object> empty = new HashMap<>();
+      empty.put("subscription", null);
+      empty.put("services", List.of());
+      empty.put("totals", null);
+      return empty;
     }
 
     reconcileServiceStates(subscription.getId());
@@ -178,7 +195,7 @@ public class SubscriptionsService {
       return explicit.toLowerCase();
     }
     String env = System.getenv().getOrDefault("APP_ENV", "development");
-    return "development".equalsIgnoreCase(env) ? "mock" : "stripe";
+    return "production".equalsIgnoreCase(env) ? "stripe" : "mock";
   }
 
   private LocalDateTime getPaymentExpiresAt() {
@@ -264,7 +281,7 @@ public class SubscriptionsService {
     }
   }
 
-  private Map<String, Object> createPaymentRequest(
+  private SubscriptionPaymentRequest createPaymentRequest(
       String tenantId,
       String subscriptionId,
       String email,
@@ -303,7 +320,7 @@ public class SubscriptionsService {
     }
 
     emailService.sendSubscriptionPaymentEmail(email, paymentUrl, tenantName, amountEur);
-    return Map.of("paymentUrl", paymentUrl, "token", token);
+    return payment;
   }
 
   private double servicesTotal(List<ServiceSummary> services) {
@@ -337,7 +354,7 @@ public class SubscriptionsService {
 
     Set<String> codes = dto.serviceCodes != null ? Set.copyOf(dto.serviceCodes) : Set.of();
     if (!codes.isEmpty()) {
-      List<ServiceCatalog> catalog = catalogRepository.findAllById(codes);
+      List<ServiceCatalog> catalog = catalogRepository.findAllByCodeIn(List.copyOf(codes));
       if (catalog.size() != codes.size()) {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more services not found");
       }
@@ -375,7 +392,7 @@ public class SubscriptionsService {
     }
 
     if (!codes.isEmpty()) {
-      List<ServiceCatalog> catalog = catalogRepository.findAllById(codes);
+      List<ServiceCatalog> catalog = catalogRepository.findAllByCodeIn(List.copyOf(codes));
       List<SubscriptionService> rows = new ArrayList<>();
       for (ServiceCatalog service : catalog) {
         SubscriptionService entry = new SubscriptionService();
@@ -397,7 +414,7 @@ public class SubscriptionsService {
     List<ServiceSummary> servicesSummary =
         codes.isEmpty()
             ? List.of()
-            : catalogRepository.findAllById(codes).stream()
+            : catalogRepository.findAllByCodeIn(List.copyOf(codes)).stream()
                 .map(
                     service ->
                         new ServiceSummary(
@@ -409,7 +426,8 @@ public class SubscriptionsService {
     double amountEur =
         dto.basePriceEur.doubleValue() + servicesTotal(servicesSummary);
 
-    createPaymentRequest(
+    SubscriptionPaymentRequest payment =
+        createPaymentRequest(
         tenantId,
         subscription.getId(),
         tenant.getBillingEmail(),
@@ -417,6 +435,8 @@ public class SubscriptionsService {
         servicesSummary,
         tenant.getName(),
         dto.period);
+
+    createInitialInvoice(payment, subscription);
 
     return buildResponse(subscription);
   }
@@ -481,7 +501,8 @@ public class SubscriptionsService {
 
     if (dto.serviceCodes != null) {
       Set<String> codes = Set.copyOf(dto.serviceCodes);
-      List<ServiceCatalog> catalog = codes.isEmpty() ? List.of() : catalogRepository.findAllById(codes);
+      List<ServiceCatalog> catalog =
+          codes.isEmpty() ? List.of() : catalogRepository.findAllByCodeIn(List.copyOf(codes));
       if (catalog.size() != codes.size()) {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more services not found");
       }
@@ -530,11 +551,125 @@ public class SubscriptionsService {
       }
     }
 
+    syncLatestInvoice(subscription);
+
     if ("cancelled".equals(dto.status)) {
       createHistoryFromSubscription(subscription);
     }
 
     return buildResponse(subscription);
+  }
+
+  private void syncLatestInvoice(Subscription subscription) {
+    if (subscription == null) {
+      return;
+    }
+    List<TenantInvoice> invoices = invoiceRepository.findBySubscriptionId(subscription.getId());
+    if (invoices.isEmpty()) {
+      return;
+    }
+    TenantInvoice invoice =
+        invoices.stream()
+            .max(
+                Comparator.comparing(
+                    item -> item.getIssuedAt() != null ? item.getIssuedAt() : item.getCreatedAt()))
+            .orElse(null);
+    if (invoice == null) {
+      return;
+    }
+
+    List<SubscriptionService> services =
+        subscriptionServiceRepository.findBySubscriptionId(subscription.getId());
+    double servicesTotal =
+        services.stream().map(item -> item.getPriceEur().doubleValue()).reduce(0d, Double::sum);
+
+    invoice.setBasePriceEur(subscription.getBasePriceEur());
+    invoice.setServicesPriceEur(BigDecimal.valueOf(servicesTotal));
+    invoice.setTotalEur(subscription.getBasePriceEur().add(BigDecimal.valueOf(servicesTotal)));
+    invoiceRepository.save(invoice);
+
+    List<TenantInvoiceItem> existingItems = invoiceItemRepository.findByInvoiceId(invoice.getId());
+    Map<String, TenantInvoiceItem> itemMap =
+        existingItems.stream()
+            .collect(Collectors.toMap(TenantInvoiceItem::getServiceCode, item -> item, (a, b) -> a));
+    List<TenantInvoiceItem> toSave = new ArrayList<>();
+    LocalDateTime now = LocalDateTime.now();
+    for (SubscriptionService service : services) {
+      TenantInvoiceItem item = itemMap.get(service.getServiceCode());
+      if (item == null) {
+        TenantInvoiceItem created = new TenantInvoiceItem();
+        created.setId(UUID.randomUUID().toString());
+        created.setInvoiceId(invoice.getId());
+        created.setServiceCode(service.getServiceCode());
+        created.setDescription("Servicio " + service.getServiceCode());
+        created.setPriceEur(service.getPriceEur());
+        created.setStatus(service.getStatus());
+        created.setCreatedAt(now);
+        toSave.add(created);
+      } else {
+        item.setPriceEur(service.getPriceEur());
+        item.setStatus(service.getStatus());
+        toSave.add(item);
+      }
+    }
+    if (!toSave.isEmpty()) {
+      invoiceItemRepository.saveAll(toSave);
+    }
+  }
+
+  @Transactional
+  public Map<String, Object> deleteByTenantId(String tenantId) {
+    var tenant = tenantsService.getById(tenantId);
+    if (tenant == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tenant not found");
+    }
+
+    Optional<Subscription> subscriptionOpt = subscriptionRepository.findByTenantId(tenantId);
+
+    if (subscriptionOpt.isPresent()) {
+      Subscription subscription = subscriptionOpt.get();
+      try {
+        List<TenantInvoice> invoices = invoiceRepository.findBySubscriptionId(subscription.getId());
+        if (!invoices.isEmpty()) {
+          List<String> invoiceIds = invoices.stream().map(TenantInvoice::getId).toList();
+          if (!invoiceIds.isEmpty()) {
+            invoiceItemRepository.deleteByInvoiceIdIn(invoiceIds);
+          }
+          invoiceRepository.deleteAll(invoices);
+        }
+      } catch (DataAccessException ex) {
+        // Tables may not exist yet in some environments; ignore invoice cleanup in that case.
+      }
+
+      try {
+        paymentRepository.deleteBySubscriptionId(subscription.getId());
+      } catch (DataAccessException ex) {
+        // Ignore missing/legacy columns in payment requests during cleanup.
+      }
+
+      try {
+        subscriptionHistoryRepository.deleteBySubscriptionId(subscription.getId());
+      } catch (DataAccessException ex) {
+        // Ignore missing/legacy columns in history during cleanup.
+      }
+
+      subscriptionServiceRepository.deleteBySubscriptionId(subscription.getId());
+      subscriptionRepository.delete(subscription);
+    } else {
+      try {
+        paymentRepository.deleteByTenantId(tenantId);
+      } catch (DataAccessException ex) {
+        // Ignore missing/legacy columns in payment requests during cleanup.
+      }
+
+      try {
+        subscriptionHistoryRepository.deleteByTenantId(tenantId);
+      } catch (DataAccessException ex) {
+        // Ignore missing/legacy columns in history during cleanup.
+      }
+    }
+
+    return buildResponse(null);
   }
 
   private void createHistoryFromSubscription(Subscription subscription) {
@@ -655,7 +790,131 @@ public class SubscriptionsService {
       subscriptionServiceRepository.saveAll(pending);
     }
 
+    createInvoiceFromPayment(request, subscription);
+
     return buildResponse(subscription);
+  }
+
+  private void createInvoiceFromPayment(SubscriptionPaymentRequest request, Subscription subscription) {
+    if (request == null || subscription == null) {
+      return;
+    }
+    Optional<TenantInvoice> existingInvoice =
+        invoiceRepository.findFirstByPaymentRequestId(request.getId());
+
+    List<SubscriptionService> services =
+        subscriptionServiceRepository.findBySubscriptionId(subscription.getId()).stream()
+            .filter(item -> List.of("active", "pending_removal").contains(item.getStatus()))
+            .toList();
+    double servicesTotal =
+        services.stream().map(item -> item.getPriceEur().doubleValue()).reduce(0d, Double::sum);
+    LocalDateTime now = LocalDateTime.now();
+
+    TenantInvoice invoice;
+    if (existingInvoice.isPresent()) {
+      invoice = existingInvoice.get();
+      invoice.setBasePriceEur(subscription.getBasePriceEur());
+      invoice.setServicesPriceEur(BigDecimal.valueOf(servicesTotal));
+      invoice.setTotalEur(request.getAmountEur());
+      invoice.setCurrency(subscription.getCurrency() != null ? subscription.getCurrency() : "EUR");
+      invoice.setStatus("paid");
+      invoice.setPaidAt(now);
+      invoice.setPeriodStart(subscription.getCurrentPeriodStart());
+      invoice.setPeriodEnd(subscription.getCurrentPeriodEnd());
+      invoiceRepository.save(invoice);
+    } else {
+      invoice = new TenantInvoice();
+      invoice.setId(UUID.randomUUID().toString());
+      invoice.setTenantId(request.getTenantId());
+      invoice.setSubscriptionId(subscription.getId());
+      invoice.setPaymentRequestId(request.getId());
+      invoice.setPeriod(subscription.getPeriod());
+      invoice.setBasePriceEur(subscription.getBasePriceEur());
+      invoice.setServicesPriceEur(BigDecimal.valueOf(servicesTotal));
+      invoice.setTotalEur(request.getAmountEur());
+      invoice.setCurrency(subscription.getCurrency() != null ? subscription.getCurrency() : "EUR");
+      invoice.setStatus("paid");
+      invoice.setIssuedAt(now);
+      invoice.setPaidAt(now);
+      invoice.setPeriodStart(subscription.getCurrentPeriodStart());
+      invoice.setPeriodEnd(subscription.getCurrentPeriodEnd());
+      invoice.setCreatedAt(now);
+      invoiceRepository.save(invoice);
+    }
+
+    List<TenantInvoiceItem> existingItems = invoiceItemRepository.findByInvoiceId(invoice.getId());
+    if (existingItems.isEmpty()) {
+      List<TenantInvoiceItem> items =
+          services.stream()
+              .map(
+                  service -> {
+                    TenantInvoiceItem item = new TenantInvoiceItem();
+                    item.setId(UUID.randomUUID().toString());
+                    item.setInvoiceId(invoice.getId());
+                    item.setServiceCode(service.getServiceCode());
+                    item.setDescription("Servicio " + service.getServiceCode());
+                    item.setPriceEur(service.getPriceEur());
+                    item.setStatus(service.getStatus());
+                    item.setCreatedAt(now);
+                    return item;
+                  })
+              .toList();
+      if (!items.isEmpty()) {
+        invoiceItemRepository.saveAll(items);
+      }
+    }
+  }
+
+  private void createInitialInvoice(SubscriptionPaymentRequest request, Subscription subscription) {
+    if (request == null || subscription == null) {
+      return;
+    }
+    if (invoiceRepository.findFirstByPaymentRequestId(request.getId()).isPresent()) {
+      return;
+    }
+
+    List<SubscriptionService> services =
+        subscriptionServiceRepository.findBySubscriptionId(subscription.getId());
+    double servicesTotal =
+        services.stream().map(item -> item.getPriceEur().doubleValue()).reduce(0d, Double::sum);
+    LocalDateTime now = LocalDateTime.now();
+
+    TenantInvoice invoice = new TenantInvoice();
+    invoice.setId(UUID.randomUUID().toString());
+    invoice.setTenantId(request.getTenantId());
+    invoice.setSubscriptionId(subscription.getId());
+    invoice.setPaymentRequestId(request.getId());
+    invoice.setPeriod(subscription.getPeriod());
+    invoice.setBasePriceEur(subscription.getBasePriceEur());
+    invoice.setServicesPriceEur(BigDecimal.valueOf(servicesTotal));
+    invoice.setTotalEur(request.getAmountEur());
+    invoice.setCurrency(subscription.getCurrency() != null ? subscription.getCurrency() : "EUR");
+    invoice.setStatus("pending");
+    invoice.setIssuedAt(now);
+    invoice.setPaidAt(null);
+    invoice.setPeriodStart(subscription.getCurrentPeriodStart());
+    invoice.setPeriodEnd(subscription.getCurrentPeriodEnd());
+    invoice.setCreatedAt(now);
+    invoiceRepository.save(invoice);
+
+    List<TenantInvoiceItem> items =
+        services.stream()
+            .map(
+                service -> {
+                  TenantInvoiceItem item = new TenantInvoiceItem();
+                  item.setId(UUID.randomUUID().toString());
+                  item.setInvoiceId(invoice.getId());
+                  item.setServiceCode(service.getServiceCode());
+                  item.setDescription("Servicio " + service.getServiceCode());
+                  item.setPriceEur(service.getPriceEur());
+                  item.setStatus(service.getStatus());
+                  item.setCreatedAt(now);
+                  return item;
+                })
+            .toList();
+    if (!items.isEmpty()) {
+      invoiceItemRepository.saveAll(items);
+    }
   }
 
   public List<Map<String, Object>> listAdminSummary() {

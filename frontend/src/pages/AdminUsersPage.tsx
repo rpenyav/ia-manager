@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { DataTable, DataTableColumn } from '../components/DataTable';
+import { StatusBadgeIcon } from '../components/StatusBadgeIcon';
 import { PageWithDocs } from '../components/PageWithDocs';
 import type { AdminUser } from '../types';
 import Swal from 'sweetalert2';
@@ -178,7 +179,7 @@ export function AdminUsersPage() {
         key: 'status',
         label: 'Estado',
         sortable: true,
-        render: (row) => <span className={`status ${row.status}`}>{row.status}</span>
+        render: (row) => <StatusBadgeIcon status={row.status} />
       },
       {
         key: 'actions',

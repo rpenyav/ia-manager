@@ -3,6 +3,9 @@ package com.neria.manager.providers;
 import com.neria.manager.common.entities.Provider;
 import com.neria.manager.common.repos.ProviderRepository;
 import com.neria.manager.common.services.EncryptionService;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -10,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ProvidersService {
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final ProviderRepository repository;
   private final EncryptionService encryptionService;
 
@@ -23,13 +27,21 @@ public class ProvidersService {
   }
 
   public Provider create(String tenantId, CreateProviderRequest dto) {
+    String credentials = normalizeJson(dto.credentialsJson);
+    if (credentials == null || credentials.isBlank()) {
+      throw new IllegalArgumentException("Missing provider credentials");
+    }
+    String config = normalizeJson(dto.configJson);
+    if (config == null || config.isBlank()) {
+      config = "{}";
+    }
     Provider provider = new Provider();
     provider.setId(UUID.randomUUID().toString());
     provider.setTenantId(tenantId);
     provider.setType(dto.type);
     provider.setDisplayName(dto.displayName);
-    provider.setEncryptedCredentials(encryptionService.encrypt(dto.credentialsJson));
-    provider.setConfig(dto.configJson);
+    provider.setEncryptedCredentials(encryptionService.encrypt(credentials));
+    provider.setConfig(config);
     provider.setEnabled(dto.enabled != null ? dto.enabled : true);
     provider.setCreatedAt(LocalDateTime.now());
     provider.setUpdatedAt(LocalDateTime.now());
@@ -47,11 +59,13 @@ public class ProvidersService {
     if (dto.enabled != null) {
       provider.setEnabled(dto.enabled);
     }
-    if (dto.credentialsJson != null && !dto.credentialsJson.isBlank()) {
-      provider.setEncryptedCredentials(encryptionService.encrypt(dto.credentialsJson));
+    String credentials = normalizeJson(dto.credentialsJson);
+    if (credentials != null && !credentials.isBlank()) {
+      provider.setEncryptedCredentials(encryptionService.encrypt(credentials));
     }
-    if (dto.configJson != null && !dto.configJson.isBlank()) {
-      provider.setConfig(dto.configJson);
+    String config = normalizeJson(dto.configJson);
+    if (config != null && !config.isBlank()) {
+      provider.setConfig(config);
     }
     provider.setUpdatedAt(LocalDateTime.now());
     return repository.save(provider);
@@ -72,18 +86,36 @@ public class ProvidersService {
     return encryptionService.decrypt(provider.getEncryptedCredentials());
   }
 
+  private String normalizeJson(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof String text) {
+      return text;
+    }
+    try {
+      return OBJECT_MAPPER.writeValueAsString(value);
+    } catch (JsonProcessingException ex) {
+      throw new IllegalArgumentException("Invalid JSON payload", ex);
+    }
+  }
+
   public static class CreateProviderRequest {
     public String type;
     public String displayName;
-    public String credentialsJson;
-    public String configJson;
+    @JsonAlias({"credentials", "credentialsJson"})
+    public Object credentialsJson;
+    @JsonAlias({"config", "configJson"})
+    public Object configJson;
     public Boolean enabled;
   }
 
   public static class UpdateProviderRequest {
     public String displayName;
-    public String credentialsJson;
-    public String configJson;
+    @JsonAlias({"credentials", "credentialsJson"})
+    public Object credentialsJson;
+    @JsonAlias({"config", "configJson"})
+    public Object configJson;
     public Boolean enabled;
   }
 }

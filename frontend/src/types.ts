@@ -132,13 +132,18 @@ export type TenantServiceOverview = {
   serviceCode: string;
   name: string;
   description: string;
+  apiBaseUrl?: string | null;
   priceMonthlyEur: number;
   priceAnnualEur: number;
+  endpointsEnabled: boolean;
   subscriptionStatus: 'active' | 'pending' | 'pending_removal' | 'disabled';
   activateAt: string | null;
   deactivateAt?: string | null;
   configStatus: 'active' | 'suspended';
   systemPrompt: string | null;
+  providerId?: string | null;
+  pricingId?: string | null;
+  policyId?: string | null;
   userCount: number;
   endpointCount: number;
 };
@@ -168,9 +173,11 @@ export type ServiceCatalogItem = {
   code: string;
   name: string;
   description: string;
+  apiBaseUrl?: string | null;
   priceMonthlyEur: number;
   priceAnnualEur: number;
   enabled: boolean;
+  endpointsEnabled: boolean;
 };
 
 export type Subscription = {
@@ -208,6 +215,39 @@ export type SubscriptionSummary = {
     totalEur: number;
     billedSinceStartEur: number;
   } | null;
+};
+
+export type TenantInvoice = {
+  id: string;
+  tenantId: string;
+  subscriptionId?: string | null;
+  paymentRequestId?: string | null;
+  period: string;
+  basePriceEur: number;
+  servicesPriceEur: number;
+  totalEur: number;
+  currency: string;
+  status: 'pending' | 'paid' | 'void';
+  issuedAt: string;
+  paidAt?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  createdAt: string;
+};
+
+export type TenantInvoiceItem = {
+  id: string;
+  invoiceId: string;
+  serviceCode: string;
+  description?: string | null;
+  priceEur: number;
+  status: string;
+  createdAt: string;
+};
+
+export type TenantInvoiceEntry = {
+  invoice: TenantInvoice;
+  items: TenantInvoiceItem[];
 };
 
 export type AdminSubscriptionSummary = {

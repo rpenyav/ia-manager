@@ -89,6 +89,10 @@ public class TenantServicesService {
               config.setServiceCode(serviceCode);
               config.setStatus(DEFAULT_STATUS);
               config.setSystemPrompt(null);
+              config.setApiBaseUrl(null);
+              config.setProviderId(null);
+              config.setPricingId(null);
+              config.setPolicyId(null);
               config.setCreatedAt(LocalDateTime.now());
               config.setUpdatedAt(LocalDateTime.now());
               return configRepository.save(config);
@@ -97,6 +101,20 @@ public class TenantServicesService {
 
   private String normalizeServiceCode(String value) {
     return value == null ? "" : value.trim();
+  }
+
+  private ServiceCatalog requireService(String serviceCode) {
+    return serviceCatalogRepository
+        .findByCode(serviceCode)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service not found"));
+  }
+
+  private void requireEndpointsEnabled(String serviceCode) {
+    ServiceCatalog service = requireService(serviceCode);
+    if (!service.isEndpointsEnabled()) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Service does not support endpoints");
+    }
   }
 
   public List<TenantServiceSummary> listServices(String tenantId) {
@@ -125,13 +143,21 @@ public class TenantServicesService {
       summary.serviceCode = service.getCode();
       summary.name = service.getName();
       summary.description = service.getDescription();
+      summary.apiBaseUrl =
+          config != null && config.getApiBaseUrl() != null
+              ? config.getApiBaseUrl()
+              : service.getApiBaseUrl();
       summary.priceMonthlyEur = service.getPriceMonthlyEur();
       summary.priceAnnualEur = service.getPriceAnnualEur();
+      summary.endpointsEnabled = service.isEndpointsEnabled();
       summary.subscriptionStatus = subscription != null ? subscription.getStatus() : "disabled";
       summary.activateAt = subscription != null ? subscription.getActivateAt() : null;
       summary.deactivateAt = subscription != null ? subscription.getDeactivateAt() : null;
       summary.configStatus = config != null ? config.getStatus() : DEFAULT_STATUS;
       summary.systemPrompt = config != null ? config.getSystemPrompt() : null;
+      summary.providerId = config != null ? config.getProviderId() : null;
+      summary.pricingId = config != null ? config.getPricingId() : null;
+      summary.policyId = config != null ? config.getPolicyId() : null;
       summary.userCount = userCount;
       summary.endpointCount = endpointCount;
       results.add(summary);
@@ -140,7 +166,14 @@ public class TenantServicesService {
   }
 
   public TenantServiceConfig updateConfig(
-      String tenantId, String serviceCode, String status, String systemPrompt) {
+      String tenantId,
+      String serviceCode,
+      String status,
+      String systemPrompt,
+      String apiBaseUrl,
+      String providerId,
+      String pricingId,
+      String policyId) {
     ensureTenant(tenantId);
     String normalized = normalizeServiceCode(serviceCode);
     TenantServiceConfig config = ensureConfig(tenantId, normalized);
@@ -150,6 +183,22 @@ public class TenantServicesService {
     if (systemPrompt != null) {
       String trimmed = systemPrompt.trim();
       config.setSystemPrompt(trimmed.isEmpty() ? null : trimmed);
+    }
+    if (apiBaseUrl != null) {
+      String trimmed = apiBaseUrl.trim();
+      config.setApiBaseUrl(trimmed.isEmpty() ? null : trimmed);
+    }
+    if (providerId != null) {
+      String trimmed = providerId.trim();
+      config.setProviderId(trimmed.isEmpty() ? null : trimmed);
+    }
+    if (pricingId != null) {
+      String trimmed = pricingId.trim();
+      config.setPricingId(trimmed.isEmpty() ? null : trimmed);
+    }
+    if (policyId != null) {
+      String trimmed = policyId.trim();
+      config.setPolicyId(trimmed.isEmpty() ? null : trimmed);
     }
     config.setUpdatedAt(LocalDateTime.now());
     return configRepository.save(config);
@@ -167,6 +216,7 @@ public class TenantServicesService {
       String tenantId, String serviceCode, CreateEndpointRequest payload) {
     ensureTenant(tenantId);
     String normalized = normalizeServiceCode(serviceCode);
+    requireEndpointsEnabled(normalized);
     ensureConfig(tenantId, normalized);
 
     TenantServiceEndpoint created = new TenantServiceEndpoint();
@@ -189,6 +239,7 @@ public class TenantServicesService {
       String tenantId, String serviceCode, String id, UpdateEndpointRequest payload) {
     ensureTenant(tenantId);
     String normalized = normalizeServiceCode(serviceCode);
+    requireEndpointsEnabled(normalized);
     TenantServiceEndpoint endpoint =
         endpointRepository
             .findByIdAndTenantIdAndServiceCode(id, tenantId, normalized)
@@ -437,13 +488,18 @@ public class TenantServicesService {
     public String serviceCode;
     public String name;
     public String description;
+    public String apiBaseUrl;
     public java.math.BigDecimal priceMonthlyEur;
     public java.math.BigDecimal priceAnnualEur;
+    public boolean endpointsEnabled;
     public String subscriptionStatus;
     public LocalDateTime activateAt;
     public LocalDateTime deactivateAt;
     public String configStatus;
     public String systemPrompt;
+    public String providerId;
+    public String pricingId;
+    public String policyId;
     public long userCount;
     public long endpointCount;
   }

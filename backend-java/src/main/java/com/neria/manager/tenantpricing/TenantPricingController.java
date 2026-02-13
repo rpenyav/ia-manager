@@ -31,8 +31,11 @@ public class TenantPricingController {
   public TenantPricingService.TenantPricingResponse upsert(
       HttpServletRequest request,
       @PathVariable("tenantId") String tenantId,
-      @RequestBody TenantPricingService.TenantPricingUpdateRequest dto) {
+      @RequestBody(required = false) TenantPricingService.TenantPricingUpdateRequest dto) {
     requireAuth(request, tenantId);
+    if (dto == null) {
+      dto = new TenantPricingService.TenantPricingUpdateRequest(java.util.List.of());
+    }
     return tenantPricingService.upsert(tenantId, dto);
   }
 

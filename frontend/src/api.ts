@@ -13,14 +13,24 @@ const refreshClientId = import.meta.env.VITE_AUTH_CLIENT_ID || "";
 const refreshClientSecret = import.meta.env.VITE_AUTH_CLIENT_SECRET || "";
 
 const canRefresh = Boolean(refreshClientId && refreshClientSecret);
+let authModalPromise: Promise<void> | null = null;
 
 const defaultHeaders: Record<string, string> = {
   "Content-Type": "application/json",
 };
 
-if (apiKey) {
-  defaultHeaders["x-api-key"] = apiKey;
-}
+const normalizeHeaders = (headers?: HeadersInit): Record<string, string> => {
+  if (!headers) {
+    return {};
+  }
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+  return headers;
+};
 
 const clearCookie = (name: string) => {
   if (typeof document === "undefined") {
@@ -51,13 +61,49 @@ const clearStoredToken = () => {
   window.localStorage?.removeItem(AUTH_TOKEN_KEY);
 };
 
+const showSessionExpiredModal = async () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (authModalPromise) {
+    return authModalPromise;
+  }
+  authModalPromise = (async () => {
+    const Swal = (await import("sweetalert2")).default;
+    await Swal.fire({
+      title: "Sesión expirada",
+      text: "Tu sesión ha caducado. Debes iniciar sesión de nuevo.",
+      icon: "warning",
+      confirmButtonText: "Ir al login",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      backdrop: true,
+    });
+    clearCookie("pm_auth_user");
+    clearStoredToken();
+    fetch(`${baseUrl}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+      headers: getStoredToken()
+        ? { Authorization: `Bearer ${getStoredToken()}` }
+        : undefined,
+    }).catch(() => undefined);
+    window.location.href = "/login";
+  })();
+  return authModalPromise;
+};
+
 async function refreshToken() {
   if (!canRefresh) {
     return null;
   }
+  const authToken = getStoredToken();
   const response = await fetch(`${baseUrl}/auth/token`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
     credentials: "include",
     body: JSON.stringify({
       clientId: refreshClientId,
@@ -82,14 +128,17 @@ async function requestJson<T>(
   retry = true,
 ): Promise<T> {
   const authToken = getStoredToken();
+  const mergedHeaders: Record<string, string> = {
+    ...defaultHeaders,
+    ...normalizeHeaders(init?.headers),
+  };
+  if (authToken) {
+    mergedHeaders.Authorization = `Bearer ${authToken}`;
+  }
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     credentials: "include",
-    headers: {
-      ...defaultHeaders,
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      ...(init?.headers || {}),
-    },
+    headers: mergedHeaders,
   });
 
   if (response.status === 401) {
@@ -100,16 +149,9 @@ async function requestJson<T>(
         return requestJson<T>(path, init, false);
       }
     }
-    if (typeof window !== "undefined") {
-      const { emitToast } = await import("./toast");
-      emitToast("Sesión expirada. Inicia sesión de nuevo.", "error");
-      clearCookie("pm_auth_user");
-      clearStoredToken();
-      fetch(`${baseUrl}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      }).catch(() => undefined);
-      window.location.href = "/login";
+    const shouldRedirect = path === "/auth/session";
+    if (typeof window !== "undefined" && shouldRedirect) {
+      await showSessionExpiredModal();
     }
     throw new Error("Sesión expirada. Vuelve a iniciar sesión.");
   }
@@ -383,10 +425,10 @@ export const api = {
     ),
   getTenantPricing: (tenantId: string) =>
     requestJson<any>(`/tenants/${tenantId}/pricing`),
-  updateTenantPricing: (tenantId: string, payload: any) =>
+  updateTenantPricing: (tenantId: string, payload?: any) =>
     requestJson<any>(`/tenants/${tenantId}/pricing`, {
       method: "PUT",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload ?? { pricingIds: [] }),
     }),
   listChatUsers: (tenantId: string) =>
     requestJson<any[]>(`/tenants/${tenantId}/chat/users`),
@@ -418,8 +460,24 @@ export const api = {
       },
     ),
   listServiceCatalog: () => requestJson<any[]>("/services/catalog"),
+  createServiceCatalog: (payload: any) =>
+    requestJson<any>("/services/catalog", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateServiceCatalog: (id: string, payload: any) =>
+    requestJson<any>(`/services/catalog/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteServiceCatalog: (id: string) =>
+    requestJson<any>(`/services/catalog/${id}`, {
+      method: "DELETE",
+    }),
   getTenantSubscription: (tenantId: string) =>
     requestJson<any>(`/tenants/${tenantId}/subscription`),
+  getTenantInvoices: (tenantId: string) =>
+    requestJson<any[]>(`/tenants/${tenantId}/invoices`),
   createTenantSubscription: (tenantId: string, payload: any) =>
     requestJson<any>(`/tenants/${tenantId}/subscription`, {
       method: "POST",
@@ -429,6 +487,10 @@ export const api = {
     requestJson<any>(`/tenants/${tenantId}/subscription`, {
       method: "PATCH",
       body: JSON.stringify(payload),
+    }),
+  deleteTenantSubscription: (tenantId: string) =>
+    requestJson<any>(`/tenants/${tenantId}/subscription`, {
+      method: "DELETE",
     }),
   listAdminSubscriptions: () => requestJson<any[]>("/admin/subscriptions"),
   approveSubscriptionPayment: (tenantId: string) =>
@@ -456,6 +518,7 @@ export const api = {
       method: "POST",
       headers: {
         "x-tenant-id": tenantId,
+        ...(apiKey ? { "x-api-key": apiKey } : {}),
       },
       body: JSON.stringify(payload),
     }),
