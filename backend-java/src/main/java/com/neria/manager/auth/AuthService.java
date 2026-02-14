@@ -13,11 +13,17 @@ import org.springframework.stereotype.Service;
 public class AuthService {
   private final JwtService jwtService;
   private final ApiKeysService apiKeysService;
+  private final TenantServiceApiKeysService tenantServiceApiKeysService;
   private final AppProperties properties;
 
-  public AuthService(JwtService jwtService, ApiKeysService apiKeysService, AppProperties properties) {
+  public AuthService(
+      JwtService jwtService,
+      ApiKeysService apiKeysService,
+      TenantServiceApiKeysService tenantServiceApiKeysService,
+      AppProperties properties) {
     this.jwtService = jwtService;
     this.apiKeysService = apiKeysService;
+    this.tenantServiceApiKeysService = tenantServiceApiKeysService;
     this.properties = properties;
   }
 
@@ -58,6 +64,15 @@ public class AuthService {
   }
 
   public AuthContext validateApiKey(String apiKey) {
+    var serviceKey = tenantServiceApiKeysService.validate(apiKey);
+    if (serviceKey != null) {
+      return AuthContext.builder()
+          .type("serviceApiKey")
+          .tenantId(serviceKey.getTenantId())
+          .apiKeyId(serviceKey.getId())
+          .serviceCode(serviceKey.getServiceCode())
+          .build();
+    }
     ApiKey record = apiKeysService.validate(apiKey);
     if (record == null) {
       throw new IllegalArgumentException("Invalid API key");

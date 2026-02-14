@@ -9,6 +9,8 @@ import { PageWithDocs } from "../components/PageWithDocs";
 import { InfoTooltip } from "../components/InfoTooltip";
 import { useAuth } from "../auth";
 import { emitToast } from "../toast";
+import { copyToClipboard } from "../utils/clipboard";
+import { getTenantApiKey } from "../utils/apiKeyStorage";
 import type {
   ApiKeySummary,
   ChatConversation,
@@ -43,6 +45,14 @@ export function TenantServiceDetailPage() {
     TenantServiceEndpoint[]
   >([]);
   const [serviceUsers, setServiceUsers] = useState<TenantServiceUser[]>([]);
+  const [chatUserModalOpen, setChatUserModalOpen] = useState(false);
+  const [newChatUser, setNewChatUser] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+  const [chatUserBusy, setChatUserBusy] = useState(false);
+  const [storedApiKey, setStoredApiKey] = useState<string | null>(null);
   const [chatConversations, setChatConversations] = useState<
     ChatConversation[]
   >([]);
@@ -167,6 +177,14 @@ export function TenantServiceDetailPage() {
       });
     }
   }, [role, authTenantId, tenantId, serviceCode, navigate]);
+
+  useEffect(() => {
+    if (!tenantId) {
+      setStoredApiKey(null);
+      return;
+    }
+    setStoredApiKey(getTenantApiKey(tenantId));
+  }, [tenantId, apiKeys]);
 
   const refreshServiceSummary = async () => {
     if (!tenantId || !serviceCode) {
@@ -525,6 +543,67 @@ export function TenantServiceDetailPage() {
       emitToast(err.message || "No se pudo asignar el usuario", "error");
     } finally {
       setServiceBusy(false);
+    }
+  };
+
+  const resolvedServiceApiKey = service?.serviceApiKey || storedApiKey || null;
+
+  const handleCopyApiKey = async () => {
+    if (!resolvedServiceApiKey) {
+      emitToast("API key no disponible.", "error");
+      return;
+    }
+    await copyToClipboard(resolvedServiceApiKey, "API key");
+  };
+
+  const handleCopyServiceId = async () => {
+    if (!service?.tenantServiceId) {
+      emitToast("Service ID no disponible.", "error");
+      return;
+    }
+    await copyToClipboard(service.tenantServiceId, "Service ID");
+  };
+
+  const handleCreateServiceChatUser = async () => {
+    if (!tenantId || !serviceCode) {
+      return;
+    }
+    if (!newChatUser.email.trim() || !newChatUser.password.trim()) {
+      emitToast("Email y password son obligatorios.", "error");
+      return;
+    }
+    const result = await Swal.fire({
+      title: "Crear usuario",
+      text: "¿Crear y asignar este usuario al servicio?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Confirmar",
+      cancelButtonText: "Cancelar",
+    });
+    if (!result.isConfirmed) {
+      return;
+    }
+    try {
+      setChatUserBusy(true);
+      const created = await api.createChatUser(tenantId, {
+        email: newChatUser.email.trim(),
+        name: newChatUser.name.trim() || undefined,
+        password: newChatUser.password,
+      });
+      setChatUsers((prev) => [created as ChatUserSummary, ...prev]);
+      await api.assignTenantServiceUser(tenantId, serviceCode, {
+        userId: (created as ChatUserSummary).id,
+      });
+      const users = await api.listTenantServiceUsers(tenantId, serviceCode);
+      setServiceUsers(users as TenantServiceUser[]);
+      setServiceAssignUserId("");
+      setChatUserModalOpen(false);
+      setNewChatUser({ name: "", email: "", password: "" });
+      emitToast("Usuario creado y asignado.");
+    } catch (err: any) {
+      emitToast(err.message || "No se pudo crear el usuario", "error");
+    } finally {
+      setChatUserBusy(false);
     }
   };
 
@@ -1106,11 +1185,21 @@ export function TenantServiceDetailPage() {
               </div>
               <div className="kv-item">
                 <span className="kv-label">API key</span>
-                <span className="kv-value">
-                  {activeApiKey
-                    ? "API key activa (no visible)"
-                    : "No disponible"}
-                </span>
+                <div className="kv-row">
+                  <span className="kv-text">
+                    {resolvedServiceApiKey
+                      ? resolvedServiceApiKey
+                      : activeApiKey
+                        ? "API key activa (no visible)"
+                        : "No disponible"}
+                  </span>
+                  <button
+                    className="link"
+                    onClick={handleCopyApiKey}
+                  >
+                    Copiar
+                  </button>
+                </div>
               </div>
               <div className="kv-item">
                 <span className="kv-label">Provider ID</span>
@@ -1123,6 +1212,17 @@ export function TenantServiceDetailPage() {
               <div className="kv-item">
                 <span className="kv-label">Tenant ID</span>
                 <span className="kv-value">{tenantId || "—"}</span>
+              </div>
+              <div className="kv-item">
+                <span className="kv-label">Service ID</span>
+                <div className="kv-row">
+                  <span className="kv-text">
+                    {service?.tenantServiceId || "—"}
+                  </span>
+                  <button className="link" onClick={handleCopyServiceId}>
+                    Copiar
+                  </button>
+                </div>
               </div>
               <div className="kv-item">
                 <span className="kv-label">Chat endpoint</span>
@@ -1157,7 +1257,17 @@ export function TenantServiceDetailPage() {
 
             <div className="section-divider" />
 
-            <h4>Usuarios asignados</h4>
+            <div className="d-flex align-items-center justify-content-between">
+              <h4>Usuarios asignados</h4>
+              {canManageChatUsers && (
+                <button
+                  className="btn"
+                  onClick={() => setChatUserModalOpen(true)}
+                >
+                  Crear usuario
+                </button>
+              )}
+            </div>
             <div className="row g-3 form-grid-13">
               <div className="col-12 col-md-4">
                 <label>
@@ -1331,6 +1441,94 @@ export function TenantServiceDetailPage() {
           </>
         )}
       </div>
+
+      {canManageChatUsers && chatUserModalOpen && (
+        <div className="modal-backdrop">
+          <div
+            className="modal-dialog modal-dialog-centered"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="modal-content">
+              <div className="modal-header">
+                <div>
+                  <div className="eyebrow">Nuevo usuario</div>
+                  <h3>Crear usuario de chat</h3>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close"
+                  aria-label="Cerrar"
+                  onClick={() => setChatUserModalOpen(false)}
+                />
+              </div>
+              <div className="modal-body">
+                <div className="form-grid">
+                  <label>
+                    Nombre
+                    <input
+                      value={newChatUser.name}
+                      onChange={(event) =>
+                        setNewChatUser((prev) => ({
+                          ...prev,
+                          name: event.target.value,
+                        }))
+                      }
+                      placeholder="María López"
+                    />
+                  </label>
+                  <label>
+                    Email
+                    <input
+                      value={newChatUser.email}
+                      onChange={(event) =>
+                        setNewChatUser((prev) => ({
+                          ...prev,
+                          email: event.target.value,
+                        }))
+                      }
+                      placeholder="usuario@cliente.com"
+                    />
+                  </label>
+                  <label>
+                    Password
+                    <input
+                      type="password"
+                      value={newChatUser.password}
+                      onChange={(event) =>
+                        setNewChatUser((prev) => ({
+                          ...prev,
+                          password: event.target.value,
+                        }))
+                      }
+                      placeholder="mínimo 6 caracteres"
+                    />
+                  </label>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn"
+                  onClick={() => setChatUserModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="btn primary"
+                  onClick={handleCreateServiceChatUser}
+                  disabled={
+                    chatUserBusy ||
+                    !newChatUser.email.trim() ||
+                    !newChatUser.password.trim()
+                  }
+                >
+                  Crear usuario
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageWithDocs>
   );
 }

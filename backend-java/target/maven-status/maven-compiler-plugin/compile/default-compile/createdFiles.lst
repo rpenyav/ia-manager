@@ -6,6 +6,7 @@ com/neria/manager/ocr/OcrDocumentsService.class
 com/neria/manager/auth/ApiKeysController$CreateApiKeyRequest.class
 com/neria/manager/auth/ApiKeysService.class
 com/neria/manager/common/entities/AdminUser.class
+com/neria/manager/chat/TenantChatAuthController.class
 com/neria/manager/webhooks/WebhooksService$WebhookEventPayload.class
 com/neria/manager/docs/DocsController.class
 com/neria/manager/auth/ApiKeysController.class
@@ -117,6 +118,7 @@ com/neria/manager/chatbots/ChatbotsController.class
 com/neria/manager/webhooks/WebhooksService$CreateWebhookRequest.class
 com/neria/manager/adapters/GoogleVertexAdapter.class
 com/neria/manager/chat/ChatAuthService$RegisterChatUserRequest.class
+com/neria/manager/common/repos/TenantServiceApiKeyRepository.class
 com/neria/manager/common/entities/UsageEvent.class
 com/neria/manager/common/entities/ChatUser.class
 com/neria/manager/tenantservices/TenantServicesService$TenantServiceUserView.class
@@ -170,14 +172,18 @@ com/neria/manager/providers/ProvidersController.class
 com/neria/manager/chat/ChatService$UpdateChatUserRequest.class
 com/neria/manager/usage/UsageService$Totals.class
 com/neria/manager/common/repos/WebhookRepository.class
+com/neria/manager/common/entities/TenantServiceApiKey.class
 com/neria/manager/servicecatalog/ServiceCatalogService.class
 com/neria/manager/ocr/OcrDocumentsService$UpdateOcrDocumentRequest.class
 com/neria/manager/runtime/RuntimeController.class
 com/neria/manager/auth/AuthService$TokenResult.class
 com/neria/manager/billing/TenantInvoicesService.class
+com/neria/manager/common/entities/TenantLoginLog.class
 com/neria/manager/config/AppProperties.class
 com/neria/manager/usage/UsageController.class
+com/neria/manager/chat/TenantLoginLogService.class
 com/neria/manager/tenantservices/TenantServicesService$ServiceAccess.class
+com/neria/manager/common/repos/TenantLoginLogRepository.class
 com/neria/manager/webhooks/WebhooksService$UpdateWebhookRequest.class
 com/neria/manager/adapters/AwsBedrockAdapter.class
 com/neria/manager/config/AppProperties$Jwt.class
@@ -186,6 +192,7 @@ com/neria/manager/servicecatalog/ServiceCatalogController.class
 com/neria/manager/common/entities/ChatMessage.class
 com/neria/manager/common/repos/SubscriptionPaymentRequestRepository.class
 com/neria/manager/common/repos/TenantInvoiceRepository.class
+com/neria/manager/auth/TenantServiceApiKeysService.class
 com/neria/manager/common/repos/TenantPricingRepository.class
 com/neria/manager/common/entities/NotificationChannel.class
 com/neria/manager/tenantservices/TenantServicesController$TenantServiceUserRequest.class

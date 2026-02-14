@@ -48,4 +48,15 @@ public class SubscriptionsController {
     AuthUtils.requireAdmin(auth);
     return subscriptionsService.deleteByTenantId(tenantId);
   }
+
+  @DeleteMapping("/services/{tenantServiceId}")
+  public Map<String, Object> deleteServiceAssignment(
+      @PathVariable String tenantId,
+      @PathVariable String tenantServiceId,
+      HttpServletRequest request) {
+    AuthContext auth = AuthUtils.requireAuth(request);
+    AuthUtils.requireAdmin(auth);
+    AuthUtils.requireTenantScope(auth, tenantId);
+    return subscriptionsService.deleteServiceAssignment(tenantId, tenantServiceId);
+  }
 }

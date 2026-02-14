@@ -488,6 +488,13 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  deleteTenantServiceAssignment: (tenantId: string, tenantServiceId: string) =>
+    requestJson<any>(
+      `/tenants/${tenantId}/subscription/services/${tenantServiceId}`,
+      {
+        method: "DELETE",
+      },
+    ),
   deleteTenantSubscription: (tenantId: string) =>
     requestJson<any>(`/tenants/${tenantId}/subscription`, {
       method: "DELETE",

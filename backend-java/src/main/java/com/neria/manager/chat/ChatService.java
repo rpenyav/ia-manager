@@ -51,6 +51,11 @@ public class ChatService {
     return tenantServicesService.listServicesForUser(tenantId, userId);
   }
 
+  public List<TenantServicesService.TenantServiceEndpointResponse> listServiceEndpoints(
+      String tenantId, String userId, String serviceCode) {
+    return tenantServicesService.listEndpointsForUser(tenantId, serviceCode, userId);
+  }
+
   public ChatConversation createConversation(
       String tenantId, String userId, String apiKeyId, CreateConversationRequest dto) {
     String serviceCode = dto.serviceCode.trim();

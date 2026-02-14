@@ -17,6 +17,7 @@ import com.neria.manager.common.repos.SubscriptionServiceRepository;
 import com.neria.manager.common.repos.TenantServiceConfigRepository;
 import com.neria.manager.common.repos.TenantServiceEndpointRepository;
 import com.neria.manager.common.repos.TenantServiceUserRepository;
+import com.neria.manager.auth.TenantServiceApiKeysService;
 import com.neria.manager.tenants.TenantsService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -40,6 +41,7 @@ public class TenantServicesService {
   private final SubscriptionServiceRepository subscriptionServiceRepository;
   private final ServiceCatalogRepository serviceCatalogRepository;
   private final ChatUserRepository chatUsersRepository;
+  private final TenantServiceApiKeysService tenantServiceApiKeysService;
   private final TenantsService tenantsService;
   private final ObjectMapper objectMapper;
 
@@ -51,6 +53,7 @@ public class TenantServicesService {
       SubscriptionServiceRepository subscriptionServiceRepository,
       ServiceCatalogRepository serviceCatalogRepository,
       ChatUserRepository chatUsersRepository,
+      TenantServiceApiKeysService tenantServiceApiKeysService,
       TenantsService tenantsService,
       ObjectMapper objectMapper) {
     this.configRepository = configRepository;
@@ -60,6 +63,7 @@ public class TenantServicesService {
     this.subscriptionServiceRepository = subscriptionServiceRepository;
     this.serviceCatalogRepository = serviceCatalogRepository;
     this.chatUsersRepository = chatUsersRepository;
+    this.tenantServiceApiKeysService = tenantServiceApiKeysService;
     this.tenantsService = tenantsService;
     this.objectMapper = objectMapper;
   }
@@ -128,6 +132,8 @@ public class TenantServicesService {
     Map<String, TenantServiceConfig> configMap =
         configs.stream()
             .collect(Collectors.toMap(TenantServiceConfig::getServiceCode, item -> item, (a, b) -> a));
+    Map<String, String> serviceApiKeys =
+        tenantServiceApiKeysService.listPlainKeysByTenant(tenantId);
 
     List<TenantServiceSummary> results = new ArrayList<>();
     for (ServiceCatalog service : catalog) {
@@ -135,6 +141,13 @@ public class TenantServicesService {
       TenantServiceConfig config = configMap.get(service.getCode());
       if (subscription != null && config == null) {
         config = ensureConfig(tenantId, service.getCode());
+      }
+      if (subscription != null && !serviceApiKeys.containsKey(service.getCode())) {
+        var created = tenantServiceApiKeysService.getOrCreate(tenantId, service.getCode());
+        serviceApiKeys =
+            new HashMap<>(serviceApiKeys);
+        serviceApiKeys.put(
+            service.getCode(), tenantServiceApiKeysService.decryptKey(created));
       }
       long userCount = serviceUserRepository.countByTenantIdAndServiceCode(tenantId, service.getCode());
       long endpointCount = endpointRepository.countByTenantIdAndServiceCode(tenantId, service.getCode());
@@ -153,11 +166,13 @@ public class TenantServicesService {
       summary.subscriptionStatus = subscription != null ? subscription.getStatus() : "disabled";
       summary.activateAt = subscription != null ? subscription.getActivateAt() : null;
       summary.deactivateAt = subscription != null ? subscription.getDeactivateAt() : null;
+      summary.tenantServiceId = subscription != null ? subscription.getId() : null;
       summary.configStatus = config != null ? config.getStatus() : DEFAULT_STATUS;
       summary.systemPrompt = config != null ? config.getSystemPrompt() : null;
       summary.providerId = config != null ? config.getProviderId() : null;
       summary.pricingId = config != null ? config.getPricingId() : null;
       summary.policyId = config != null ? config.getPolicyId() : null;
+      summary.serviceApiKey = subscription != null ? serviceApiKeys.get(service.getCode()) : null;
       summary.userCount = userCount;
       summary.endpointCount = endpointCount;
       results.add(summary);
@@ -210,6 +225,12 @@ public class TenantServicesService {
         endpointRepository.findByTenantIdAndServiceCodeOrderByCreatedAtDesc(
             tenantId, normalizeServiceCode(serviceCode));
     return endpoints.stream().map(this::toEndpointResponse).toList();
+  }
+
+  public List<TenantServiceEndpointResponse> listEndpointsForUser(
+      String tenantId, String serviceCode, String userId) {
+    requireServiceAccess(tenantId, serviceCode, userId);
+    return listEndpoints(tenantId, serviceCode);
   }
 
   public TenantServiceEndpointResponse createEndpoint(
@@ -495,11 +516,13 @@ public class TenantServicesService {
     public String subscriptionStatus;
     public LocalDateTime activateAt;
     public LocalDateTime deactivateAt;
+    public String tenantServiceId;
     public String configStatus;
     public String systemPrompt;
     public String providerId;
     public String pricingId;
     public String policyId;
+    public String serviceApiKey;
     public long userCount;
     public long endpointCount;
   }

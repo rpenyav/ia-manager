@@ -70,6 +70,15 @@ public class ChatController {
     return chatService.listUserServices(tenantId, userId);
   }
 
+  @GetMapping("/services/{serviceCode}/endpoints")
+  public Object listServiceEndpoints(
+      HttpServletRequest request, @PathVariable String serviceCode) {
+    String tenantId = resolveTenantId(request);
+    Claims claims = requireChatToken(request, tenantId);
+    String userId = requireUserId(claims);
+    return chatService.listServiceEndpoints(tenantId, userId, serviceCode);
+  }
+
   @PostMapping("/conversations")
   public Object createConversation(
       HttpServletRequest request, @RequestBody ChatService.CreateConversationRequest dto) {

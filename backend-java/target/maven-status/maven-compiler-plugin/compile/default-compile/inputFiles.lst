@@ -17,6 +17,7 @@
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/auth/AuthController.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/auth/AuthService.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/auth/TenantAuthService.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/auth/TenantServiceApiKeysService.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/billing/TenantInvoicesController.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/billing/TenantInvoicesService.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chat/ChatAdminController.java
@@ -25,6 +26,8 @@
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chat/ChatController.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chat/ChatService.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chat/ChatTokenService.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chat/TenantChatAuthController.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chat/TenantLoginLogService.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chatbots/ChatbotsController.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/chatbots/ChatbotsService.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/AdminPasswordReset.java
@@ -50,7 +53,9 @@
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/Tenant.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantInvoice.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantInvoiceItem.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantLoginLog.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantPricing.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantServiceApiKey.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantServiceConfig.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantServiceEndpoint.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/entities/TenantServiceUser.java
@@ -78,8 +83,10 @@
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/SystemSettingRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantInvoiceItemRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantInvoiceRepository.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantLoginLogRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantPricingRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantRepository.java
+/Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantServiceApiKeyRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantServiceConfigRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantServiceEndpointRepository.java
 /Users/rafa_penya/Documents/GitHub/ia_manager/backend-java/src/main/java/com/neria/manager/common/repos/TenantServiceUserRepository.java

@@ -2,6 +2,7 @@ package com.neria.manager.chat;
 
 import com.neria.manager.common.entities.ChatUser;
 import com.neria.manager.common.repos.ChatUserRepository;
+import com.neria.manager.common.repos.TenantServiceUserRepository;
 import com.neria.manager.common.services.ScryptHasher;
 import io.jsonwebtoken.Claims;
 import java.time.LocalDateTime;
@@ -15,13 +16,18 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ChatAuthService {
   private final ChatUserRepository chatUserRepository;
+  private final TenantServiceUserRepository tenantServiceUserRepository;
   private final ScryptHasher scryptHasher;
   private final ChatTokenService tokenService;
   private final String salt;
 
   public ChatAuthService(
-      ChatUserRepository chatUserRepository, ScryptHasher scryptHasher, ChatTokenService tokenService) {
+      ChatUserRepository chatUserRepository,
+      TenantServiceUserRepository tenantServiceUserRepository,
+      ScryptHasher scryptHasher,
+      ChatTokenService tokenService) {
     this.chatUserRepository = chatUserRepository;
+    this.tenantServiceUserRepository = tenantServiceUserRepository;
     this.scryptHasher = scryptHasher;
     this.tokenService = tokenService;
     String envSalt = System.getenv().getOrDefault("CHAT_PASSWORD_SALT", "");
@@ -74,6 +80,15 @@ public class ChatAuthService {
     if (!matches(dto.password, user.getPasswordHash())) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
+    if (dto.serviceCode != null && !dto.serviceCode.isBlank()) {
+      String code = dto.serviceCode.trim();
+      var assignment =
+          tenantServiceUserRepository.findByTenantIdAndServiceCodeAndUserId(
+              tenantId, code, user.getId());
+      if (assignment.isEmpty() || !"active".equals(assignment.get().getStatus())) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+      }
+    }
     return issueToken(user);
   }
 
@@ -114,5 +129,7 @@ public class ChatAuthService {
   public static class LoginChatUserRequest {
     public String email;
     public String password;
+    public String serviceCode;
+    public String tenantServiceId;
   }
 }

@@ -16,6 +16,8 @@ public interface TenantServiceUserRepository extends JpaRepository<TenantService
 
   long countByTenantIdAndServiceCode(String tenantId, String serviceCode);
 
+  void deleteByTenantIdAndServiceCode(String tenantId, String serviceCode);
+
   void deleteByTenantIdAndServiceCodeAndUserId(
       String tenantId, String serviceCode, String userId);
 

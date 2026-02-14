@@ -1,5 +1,6 @@
 package com.neria.manager.subscriptions;
 
+import com.neria.manager.auth.TenantServiceApiKeysService;
 import com.neria.manager.common.entities.ServiceCatalog;
 import com.neria.manager.common.entities.Subscription;
 import com.neria.manager.common.entities.SubscriptionHistory;
@@ -14,6 +15,9 @@ import com.neria.manager.common.repos.SubscriptionRepository;
 import com.neria.manager.common.repos.SubscriptionServiceRepository;
 import com.neria.manager.common.repos.TenantInvoiceItemRepository;
 import com.neria.manager.common.repos.TenantInvoiceRepository;
+import com.neria.manager.common.repos.TenantServiceConfigRepository;
+import com.neria.manager.common.repos.TenantServiceEndpointRepository;
+import com.neria.manager.common.repos.TenantServiceUserRepository;
 import com.neria.manager.common.services.EmailService;
 import com.neria.manager.tenants.TenantsService;
 import com.stripe.Stripe;
@@ -45,9 +49,13 @@ public class SubscriptionsService {
   private final SubscriptionServiceRepository subscriptionServiceRepository;
   private final SubscriptionHistoryRepository subscriptionHistoryRepository;
   private final SubscriptionPaymentRequestRepository paymentRepository;
+  private final TenantServiceApiKeysService tenantServiceApiKeysService;
   private final ServiceCatalogRepository catalogRepository;
   private final TenantInvoiceRepository invoiceRepository;
   private final TenantInvoiceItemRepository invoiceItemRepository;
+  private final TenantServiceConfigRepository tenantServiceConfigRepository;
+  private final TenantServiceEndpointRepository tenantServiceEndpointRepository;
+  private final TenantServiceUserRepository tenantServiceUserRepository;
   private final TenantsService tenantsService;
   private final EmailService emailService;
 
@@ -56,18 +64,26 @@ public class SubscriptionsService {
       SubscriptionServiceRepository subscriptionServiceRepository,
       SubscriptionHistoryRepository subscriptionHistoryRepository,
       SubscriptionPaymentRequestRepository paymentRepository,
+      TenantServiceApiKeysService tenantServiceApiKeysService,
       ServiceCatalogRepository catalogRepository,
       TenantInvoiceRepository invoiceRepository,
       TenantInvoiceItemRepository invoiceItemRepository,
+      TenantServiceConfigRepository tenantServiceConfigRepository,
+      TenantServiceEndpointRepository tenantServiceEndpointRepository,
+      TenantServiceUserRepository tenantServiceUserRepository,
       TenantsService tenantsService,
       EmailService emailService) {
     this.subscriptionRepository = subscriptionRepository;
     this.subscriptionServiceRepository = subscriptionServiceRepository;
     this.subscriptionHistoryRepository = subscriptionHistoryRepository;
     this.paymentRepository = paymentRepository;
+    this.tenantServiceApiKeysService = tenantServiceApiKeysService;
     this.catalogRepository = catalogRepository;
     this.invoiceRepository = invoiceRepository;
     this.invoiceItemRepository = invoiceItemRepository;
+    this.tenantServiceConfigRepository = tenantServiceConfigRepository;
+    this.tenantServiceEndpointRepository = tenantServiceEndpointRepository;
+    this.tenantServiceUserRepository = tenantServiceUserRepository;
     this.tenantsService = tenantsService;
     this.emailService = emailService;
   }
@@ -409,6 +425,7 @@ public class SubscriptionsService {
         rows.add(entry);
       }
       subscriptionServiceRepository.saveAll(rows);
+      tenantServiceApiKeysService.ensureKeys(tenantId, List.copyOf(codes));
     }
 
     List<ServiceSummary> servicesSummary =
@@ -475,26 +492,16 @@ public class SubscriptionsService {
       if (!existingToRemove.isEmpty()) {
         boolean shouldSchedule =
             "active".equals(subscription.getStatus()) && now.isBefore(subscription.getCurrentPeriodEnd());
-        List<SubscriptionService> toDelete =
-            existingToRemove.stream().filter(item -> "pending".equals(item.getStatus())).toList();
-        List<SubscriptionService> toSchedule =
-            existingToRemove.stream()
-                .filter(item -> "active".equals(item.getStatus()) || "pending_removal".equals(item.getStatus()))
-                .toList();
-        if (!toDelete.isEmpty()) {
-          subscriptionServiceRepository.deleteAll(toDelete);
-        }
+        List<SubscriptionService> toSchedule = new ArrayList<>(existingToRemove);
         if (!toSchedule.isEmpty()) {
-          if (!shouldSchedule) {
-            subscriptionServiceRepository.deleteAll(toSchedule);
-          } else {
-            toSchedule.forEach(item -> {
-              item.setStatus("pending_removal");
-              item.setDeactivateAt(subscription.getCurrentPeriodEnd());
-              item.setUpdatedAt(LocalDateTime.now());
-            });
-            subscriptionServiceRepository.saveAll(toSchedule);
-          }
+          LocalDateTime deactivateAt =
+              shouldSchedule ? subscription.getCurrentPeriodEnd() : LocalDateTime.now();
+          toSchedule.forEach(item -> {
+            item.setStatus("pending_removal");
+            item.setDeactivateAt(deactivateAt);
+            item.setUpdatedAt(LocalDateTime.now());
+          });
+          subscriptionServiceRepository.saveAll(toSchedule);
         }
       }
     }
@@ -549,6 +556,9 @@ public class SubscriptionsService {
         }
         subscriptionServiceRepository.saveAll(rows);
       }
+      if (!codes.isEmpty()) {
+        tenantServiceApiKeysService.ensureKeys(tenantId, List.copyOf(codes));
+      }
     }
 
     syncLatestInvoice(subscription);
@@ -556,6 +566,43 @@ public class SubscriptionsService {
     if ("cancelled".equals(dto.status)) {
       createHistoryFromSubscription(subscription);
     }
+
+    return buildResponse(subscription);
+  }
+
+  @Transactional
+  public Map<String, Object> deleteServiceAssignment(String tenantId, String tenantServiceId) {
+    if (tenantServiceId == null || tenantServiceId.isBlank()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing service assignment id");
+    }
+    SubscriptionService assignment =
+        subscriptionServiceRepository
+            .findById(tenantServiceId)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Service assignment not found"));
+    Subscription subscription =
+        subscriptionRepository
+            .findById(assignment.getSubscriptionId())
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Subscription not found"));
+    if (!tenantId.equals(subscription.getTenantId())) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Service assignment not found");
+    }
+
+    String serviceCode = assignment.getServiceCode();
+    subscriptionServiceRepository.delete(assignment);
+    tenantServiceConfigRepository.deleteByTenantIdAndServiceCode(tenantId, serviceCode);
+    tenantServiceEndpointRepository.deleteByTenantIdAndServiceCode(tenantId, serviceCode);
+    tenantServiceUserRepository.deleteByTenantIdAndServiceCode(tenantId, serviceCode);
+    tenantServiceApiKeysService.deleteByTenantAndServiceCode(tenantId, serviceCode);
+
+    subscription.setUpdatedAt(LocalDateTime.now());
+    subscriptionRepository.save(subscription);
+    syncLatestInvoice(subscription);
 
     return buildResponse(subscription);
   }
@@ -594,6 +641,15 @@ public class SubscriptionsService {
             .collect(Collectors.toMap(TenantInvoiceItem::getServiceCode, item -> item, (a, b) -> a));
     List<TenantInvoiceItem> toSave = new ArrayList<>();
     LocalDateTime now = LocalDateTime.now();
+    Set<String> serviceCodes =
+        services.stream().map(SubscriptionService::getServiceCode).collect(Collectors.toSet());
+    List<TenantInvoiceItem> toDelete =
+        existingItems.stream()
+            .filter(item -> !serviceCodes.contains(item.getServiceCode()))
+            .toList();
+    if (!toDelete.isEmpty()) {
+      invoiceItemRepository.deleteAll(toDelete);
+    }
     for (SubscriptionService service : services) {
       TenantInvoiceItem item = itemMap.get(service.getServiceCode());
       if (item == null) {

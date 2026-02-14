@@ -11,4 +11,5 @@ public class AuthContext {
   private final String role;
   private final String tenantId;
   private final String apiKeyId;
+  private final String serviceCode;
 }

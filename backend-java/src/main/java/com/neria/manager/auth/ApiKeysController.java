@@ -52,12 +52,8 @@ public class ApiKeysController {
   @PatchMapping("/{id}/rotate")
   public ApiKeysService.ApiKeyCreateResult rotate(
       HttpServletRequest request, @PathVariable("id") String id) {
-    requireAdmin(request);
-    ApiKeysService.ApiKeyCreateResult rotated = apiKeysService.rotate(id);
-    if (rotated == null) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Api key not found");
-    }
-    return rotated;
+    throw new ResponseStatusException(
+        HttpStatus.FORBIDDEN, "API key rotation disabled");
   }
 
   private AuthContext requireAuth(HttpServletRequest request) {

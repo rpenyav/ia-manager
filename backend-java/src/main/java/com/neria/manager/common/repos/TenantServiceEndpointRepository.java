@@ -14,4 +14,6 @@ public interface TenantServiceEndpointRepository
       String id, String tenantId, String serviceCode);
 
   long countByTenantIdAndServiceCode(String tenantId, String serviceCode);
+
+  void deleteByTenantIdAndServiceCode(String tenantId, String serviceCode);
 }

@@ -11,3 +11,13 @@ frontend/dist
 
 # Nest
 backend/dist
+backend-javascript
+migrations
+postman
+
+backup_railway_before_overwrite.sql
+data.sql
+full.sql
+provider_manager.sql
+chema_subscriptions.sql
+schema.sql

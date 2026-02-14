@@ -11,4 +11,6 @@ public interface TenantServiceConfigRepository extends JpaRepository<TenantServi
   List<TenantServiceConfig> findByTenantId(String tenantId);
 
   List<TenantServiceConfig> findByTenantIdAndServiceCodeIn(String tenantId, List<String> codes);
+
+  void deleteByTenantIdAndServiceCode(String tenantId, String serviceCode);
 }

@@ -4,6 +4,7 @@ import { api } from '../api';
 import { useDashboard } from '../dashboard';
 import { emitToast } from '../toast';
 import { copyToClipboard } from '../utils/clipboard';
+import { storeTenantApiKey } from '../utils/apiKeyStorage';
 import { FieldWithHelp } from './FieldWithHelp';
 
 type Props = {
@@ -380,6 +381,9 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
       }
       const created = await api.createApiKey(payload);
       setCreatedApiKey(created.apiKey);
+      if (wizardTenantId && created?.apiKey) {
+        storeTenantApiKey(wizardTenantId, created.apiKey);
+      }
       emitToast('API key creada');
     } catch (err: any) {
       setError(err.message || 'Error creando API key');

@@ -31,6 +31,7 @@ import type {
 import { buildDailyUsage } from "../utils/chartData";
 import { formatEur, formatUsdWithEur } from "../utils/currency";
 import { copyToClipboard } from "../utils/clipboard";
+import { getTenantApiKey, storeTenantApiKey } from "../utils/apiKeyStorage";
 import { Z2_EMPHASIS_LIFT } from "echarts/types/src/util/states.js";
 
 export function ClientSummaryPage() {
@@ -48,6 +49,7 @@ export function ClientSummaryPage() {
   const canManageServices = role === "admin" || role === "tenant";
   const canManageSubscription = role === "admin" || role === "tenant";
   const canDeleteSubscription = role === "admin";
+  const canDeleteServiceAssignment = role === "admin";
   const canManagePricing = role === "admin";
   const canManageApiKeys = role === "admin";
   const canManageProviders = role === "admin";
@@ -163,6 +165,7 @@ export function ClientSummaryPage() {
   const canCreateApiKey =
     providers.length > 0 && Boolean(policy) && pricingSelection.length > 0;
   const [chatUsers, setChatUsers] = useState<ChatUserSummary[]>([]);
+  const [storedApiKey, setStoredApiKey] = useState<string | null>(null);
   const [newChatUser, setNewChatUser] = useState({
     name: "",
     email: "",
@@ -242,12 +245,21 @@ export function ClientSummaryPage() {
     null,
   );
   const [addonEndpointsBusy, setAddonEndpointsBusy] = useState(false);
+  const [serviceRemoveBusy, setServiceRemoveBusy] = useState(false);
   const [serviceDoc, setServiceDoc] = useState<{
     title: string;
     content: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!tenantId) {
+      setStoredApiKey(null);
+      return;
+    }
+    setStoredApiKey(getTenantApiKey(tenantId));
+  }, [tenantId, createdApiKey, apiKeys]);
 
   const dailyUsage = useMemo(
     () => buildDailyUsage(usageEvents, 7),
@@ -421,6 +433,7 @@ export function ClientSummaryPage() {
       providerId: addonProviderId,
       model: addonModel,
       tenantId,
+      serviceId: addonService?.tenantServiceId || "",
       chatEndpoint: "persisted",
     };
   }, [
@@ -1202,6 +1215,115 @@ export function ClientSummaryPage() {
     }
   };
 
+  const handleUnassignService = async (service: TenantServiceOverview) => {
+    if (!tenantId || !subscription) {
+      return;
+    }
+    const result = await Swal.fire({
+      title: "Desasignar servicio",
+      text: `¿Desasignar ${service.name}?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Desasignar",
+      cancelButtonText: "Cancelar",
+    });
+    if (!result.isConfirmed) {
+      return;
+    }
+    try {
+      setServiceRemoveBusy(true);
+      const updated = await api.updateTenantSubscription(tenantId, {
+        removeServiceCodes: [service.serviceCode],
+      });
+      const summary =
+        updated && (updated as any).subscription
+          ? updated
+          : await api.getTenantSubscription(tenantId);
+      setSubscriptionSummary(summary as SubscriptionSummary);
+      if ((summary as any)?.subscription) {
+        setSubscriptionForm({
+          period: (summary as any).subscription.period,
+          basePriceEur: Number((summary as any).subscription.basePriceEur || 0),
+          serviceCodes: ((summary as any).services || [])
+            .filter((item: any) => item.status !== "pending_removal")
+            .map((item: any) => item.serviceCode),
+          cancelAtPeriodEnd: Boolean(
+            (summary as any).subscription.cancelAtPeriodEnd,
+          ),
+        });
+      }
+      await refreshTenantServices(service.serviceCode);
+      try {
+        const invoiceList = await api.getTenantInvoices(tenantId);
+        setTenantInvoices(invoiceList as TenantInvoiceEntry[]);
+      } catch {
+        // ignore invoice refresh errors
+      }
+      emitToast("Servicio desasignado");
+    } catch (err: any) {
+      emitToast(err.message || "Error desasignando servicio", "error");
+    } finally {
+      setServiceRemoveBusy(false);
+    }
+  };
+
+  const handleDeleteServiceAssignment = async (service: TenantServiceOverview) => {
+    if (!tenantId) {
+      return;
+    }
+    if (!service.tenantServiceId) {
+      emitToast("Service ID no disponible.", "error");
+      return;
+    }
+    const result = await Swal.fire({
+      title: "Eliminar asignación",
+      text: `Se borrará la asignación y todos los datos asociados de ${service.name}. Esta acción no se puede deshacer.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Eliminar",
+      cancelButtonText: "Cancelar",
+    });
+    if (!result.isConfirmed) {
+      return;
+    }
+    try {
+      setServiceRemoveBusy(true);
+      const updated = await api.deleteTenantServiceAssignment(
+        tenantId,
+        service.tenantServiceId,
+      );
+      const summary =
+        updated && (updated as any).subscription
+          ? updated
+          : await api.getTenantSubscription(tenantId);
+      setSubscriptionSummary(summary as SubscriptionSummary);
+      if ((summary as any)?.subscription) {
+        setSubscriptionForm({
+          period: (summary as any).subscription.period,
+          basePriceEur: Number((summary as any).subscription.basePriceEur || 0),
+          serviceCodes: ((summary as any).services || [])
+            .filter((item: any) => item.status !== "pending_removal")
+            .map((item: any) => item.serviceCode),
+          cancelAtPeriodEnd: Boolean(
+            (summary as any).subscription.cancelAtPeriodEnd,
+          ),
+        });
+      }
+      await refreshTenantServices(service.serviceCode);
+      try {
+        const invoiceList = await api.getTenantInvoices(tenantId);
+        setTenantInvoices(invoiceList as TenantInvoiceEntry[]);
+      } catch {
+        // ignore invoice refresh errors
+      }
+      emitToast("Asignación eliminada");
+    } catch (err: any) {
+      emitToast(err.message || "Error eliminando asignación", "error");
+    } finally {
+      setServiceRemoveBusy(false);
+    }
+  };
+
   const handleAddAddonEndpoints = async () => {
     if (!tenantId || !addonServiceCode || !addonService) {
       return;
@@ -1619,22 +1741,6 @@ export function ClientSummaryPage() {
     await copyToClipboard(value, label);
   };
 
-  const handleRotateKey = async (id: string) => {
-    try {
-      const rotated = await api.rotateApiKey(id);
-      if (rotated?.apiKey) {
-        await copyToClipboard(rotated.apiKey, "API key");
-        emitToast("API key regenerada y copiada");
-      }
-      const list = await api.listApiKeys();
-      setApiKeys(
-        (list as ApiKeySummary[]).filter((item) => item.tenantId === tenantId),
-      );
-    } catch (err: any) {
-      setError(err.message || "Error regenerando API key");
-    }
-  };
-
   const handleCreateApiKey = async () => {
     if (!tenantId || !newApiKeyName.trim()) {
       return;
@@ -1646,6 +1752,7 @@ export function ClientSummaryPage() {
         tenantId,
       });
       if (created?.apiKey) {
+        storeTenantApiKey(tenantId, created.apiKey);
         setCreatedApiKey(created.apiKey);
         await copyToClipboard(created.apiKey, "API key");
         emitToast("API key creada y copiada");
@@ -1661,6 +1768,17 @@ export function ClientSummaryPage() {
     } finally {
       setApiKeyBusy(false);
     }
+  };
+
+  const handleCopyStoredApiKey = async () => {
+    if (!storedApiKey) {
+      emitToast(
+        "API key no disponible. Cópiala al crearla en API Keys.",
+        "error",
+      );
+      return;
+    }
+    await copyToClipboard(storedApiKey, "API key");
   };
 
   const resetProviderForm = () => {
@@ -2384,12 +2502,14 @@ export function ClientSummaryPage() {
                 </div>
               )}
               {canManageSubscription && (
-                <button
-                  className="btn primary"
-                  onClick={() => setAssignServicesModalOpen(true)}
-                >
-                  Asignar servicios
-                </button>
+                <div className="mt-3">
+                  <button
+                    className="btn primary"
+                    onClick={() => setAssignServicesModalOpen(true)}
+                  >
+                    Asignar servicios
+                  </button>
+                </div>
               )}
             </div>
 
@@ -2417,24 +2537,26 @@ export function ClientSummaryPage() {
                           <StatusBadgeIcon status={key.status} />
                         </div>
                       </div>
-                      {canManageApiKeys && (
-                        <div className="row">
-                          <div className="col-12">
-                            <button
-                              className="link"
-                              onClick={() => handleRotateKey(key.id)}
-                            >
-                              Regenerar y copiar
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
                 {apiKeys.length === 0 && (
                   <div className="muted">Sin API keys.</div>
                 )}
+                <div className="form-grid">
+                  <label>
+                    API key actual
+                    <div className="input-with-action">
+                      <input
+                        value={storedApiKey || "No disponible"}
+                        readOnly
+                      />
+                      <button className="btn" onClick={handleCopyStoredApiKey}>
+                        Copiar
+                      </button>
+                    </div>
+                  </label>
+                </div>
 
                 {canManageApiKeys && (
                   <button
@@ -3362,6 +3484,27 @@ export function ClientSummaryPage() {
                               </span>
                             </div>
                             <div className="kv-item">
+                              <span className="kv-label">Service ID</span>
+                              <span className="kv-value kv-row">
+                                <span className="kv-text">
+                                  {addonEnvValues?.serviceId || "—"}
+                                </span>
+                                {addonEnvValues?.serviceId && (
+                                  <button
+                                    className="btn small"
+                                    onClick={() =>
+                                      handleCopy(
+                                        addonEnvValues.serviceId,
+                                        "Service ID",
+                                      )
+                                    }
+                                  >
+                                    Copiar
+                                  </button>
+                                )}
+                              </span>
+                            </div>
+                            <div className="kv-item">
                               <span className="kv-label">Chat endpoint</span>
                               <span className="kv-value">
                                 {addonEnvValues?.chatEndpoint || "—"}
@@ -3434,167 +3577,183 @@ export function ClientSummaryPage() {
           </div>
         </div>
 
-        {contractedServices.length > 0 && (
-          <>
-            <div className="card full-width">
-              <div className="card-header">
-                <div>
-                  <h2>Servicios asignados</h2>
-                  <p className="muted">
-                    Configura parámetros y, si aplica, endpoints de cada
-                    servicio. Para gestionar un servicio, pulse en "Gestionar"
-                    para abrir la página detalles del servicio.
-                  </p>
-                </div>
+        <>
+          <div className="card full-width">
+            <div className="card-header">
+              <div>
+                <h2>Servicios asignados</h2>
+                <p className="muted">
+                  Configura parámetros y, si aplica, endpoints de cada servicio.
+                  Para gestionar un servicio, pulse en "Gestionar" para abrir
+                  la página detalles del servicio.
+                </p>
               </div>
-              {contractedServices.length === 0 ? (
-                <div className="muted">Sin servicios asignados.</div>
-              ) : (
-                <DataTable
-                  columns={[
-                    { key: "name", label: "Servicio", sortable: true },
-                    {
-                      key: "price",
-                      label: "Precio",
-                      sortable: true,
-                      render: (service: TenantServiceOverview) =>
-                        formatEur(
-                          subscription?.period === "annual"
-                            ? service.priceAnnualEur
-                            : service.priceMonthlyEur,
-                        ),
+            </div>
+            {contractedServices.length === 0 ? (
+              <div className="muted">Sin servicios asignados.</div>
+            ) : (
+              <DataTable
+                columns={[
+                  { key: "name", label: "Servicio", sortable: true },
+                  {
+                    key: "price",
+                    label: "Precio",
+                    sortable: true,
+                    render: (service: TenantServiceOverview) =>
+                      formatEur(
+                        subscription?.period === "annual"
+                          ? service.priceAnnualEur
+                          : service.priceMonthlyEur,
+                      ),
+                  },
+                  {
+                    key: "subscriptionStatus",
+                    label: "Estado",
+                    sortable: true,
+                    render: (service: TenantServiceOverview) => {
+                      const status = service.subscriptionStatus || "disabled";
+                      const activateAt = service.activateAt
+                        ? new Date(service.activateAt).toLocaleDateString()
+                        : null;
+                      const deactivateAt = service.deactivateAt
+                        ? new Date(service.deactivateAt).toLocaleDateString()
+                        : null;
+                      const label =
+                        status === "pending"
+                          ? `pendiente${activateAt ? ` · ${activateAt}` : ""}`
+                          : status === "pending_removal"
+                            ? `baja pendiente${deactivateAt ? ` · ${deactivateAt}` : ""}`
+                            : status;
+                      return (
+                        <StatusBadgeIcon
+                          status={status === "active" ? "active" : "disabled"}
+                          title={label}
+                        />
+                      );
                     },
-                    {
-                      key: "subscriptionStatus",
-                      label: "Estado",
-                      sortable: true,
-                      render: (service: TenantServiceOverview) => {
-                        const status = service.subscriptionStatus || "disabled";
-                        const activateAt = service.activateAt
-                          ? new Date(service.activateAt).toLocaleDateString()
-                          : null;
-                        const deactivateAt = service.deactivateAt
-                          ? new Date(service.deactivateAt).toLocaleDateString()
-                          : null;
-                        const label =
-                          status === "pending"
-                            ? `pendiente${activateAt ? ` · ${activateAt}` : ""}`
-                            : status === "pending_removal"
-                              ? `baja pendiente${deactivateAt ? ` · ${deactivateAt}` : ""}`
-                              : status;
-                        return (
-                          <StatusBadgeIcon
-                            status={status === "active" ? "active" : "disabled"}
-                            title={label}
-                          />
-                        );
-                      },
-                    },
-                    {
-                      key: "configScope",
-                      label: "LLM",
-                      render: (service: TenantServiceOverview) => {
-                        const hasOverride = Boolean(
-                          service.providerId ||
+                  },
+                  {
+                    key: "configScope",
+                    label: "LLM",
+                    render: (service: TenantServiceOverview) => {
+                      const hasOverride = Boolean(
+                        service.providerId ||
                           service.pricingId ||
                           service.policyId,
-                        );
-                        return (
-                          <span
-                            className={`pill ${hasOverride ? "pill-alt" : ""}`}
-                          >
-                            {hasOverride ? "Override" : "Global"}
-                          </span>
-                        );
-                      },
-                    },
-                    {
-                      key: "configStatus",
-                      label: "Operativo",
-                      sortable: true,
-                      render: (service: TenantServiceOverview) => (
-                        <span
-                          className={`status ${
-                            service.configStatus === "suspended"
-                              ? "critical"
-                              : "active"
-                          }`}
-                        >
-                          {service.configStatus === "suspended"
-                            ? "suspendido"
-                            : "activo"}
+                      );
+                      return (
+                        <span className={`pill ${hasOverride ? "pill-alt" : ""}`}>
+                          {hasOverride ? "Override" : "Global"}
                         </span>
-                      ),
+                      );
                     },
-                    {
-                      key: "userCount",
-                      label: "Usuarios",
-                      sortable: true,
-                      render: (service: TenantServiceOverview) =>
-                        `${service.userCount} usuarios`,
-                    },
-                    {
-                      key: "endpointCount",
-                      label: "Endpoints",
-                      sortable: true,
-                      render: (service: TenantServiceOverview) =>
-                        service.endpointsEnabled !== false
-                          ? `${service.endpointCount} endpoints`
-                          : "No aplica",
-                    },
-                    {
-                      key: "actions",
-                      label: "Acciones",
-                      render: (service: TenantServiceOverview) => (
-                        <div className="row-actions">
-                          {canManageServices && (
-                            <button
-                              className="link"
-                              type="button"
-                              onClick={() =>
-                                navigate(
-                                  `/clients/${tenantId}/services/${service.serviceCode}`,
-                                )
-                              }
-                            >
-                              Gestionar
-                            </button>
-                          )}
-                        </div>
-                      ),
-                    },
-                  ]}
-                  data={contractedServices}
-                  getRowId={(service) => service.serviceCode}
-                  pageSize={6}
-                  filterKeys={["name", "serviceCode", "subscriptionStatus"]}
-                />
-              )}
-            </div>
-            <div className="card full-width">
-              <div className="card-header">
-                <div>
-                  <h2>Usuarios de chat</h2>
-                  <p className="muted">
-                    Gestiona todos los usuarios creados para todos los
-                    servicios. Para ver los de un servicio concreto, es
-                    necesario ir a la página de ese servicio.
-                  </p>
-                </div>
-              </div>
-              <DataTable
-                columns={chatUserColumns}
-                data={chatUsers}
-                getRowId={(user) => user.id}
+                  },
+                  {
+                    key: "configStatus",
+                    label: "Operativo",
+                    sortable: true,
+                    render: (service: TenantServiceOverview) => (
+                      <span
+                        className={`status ${
+                          service.configStatus === "suspended"
+                            ? "critical"
+                            : "active"
+                        }`}
+                      >
+                        {service.configStatus === "suspended"
+                          ? "suspendido"
+                          : "activo"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "userCount",
+                    label: "Usuarios",
+                    sortable: true,
+                    render: (service: TenantServiceOverview) =>
+                      `${service.userCount} usuarios`,
+                  },
+                  {
+                    key: "endpointCount",
+                    label: "Endpoints",
+                    sortable: true,
+                    render: (service: TenantServiceOverview) =>
+                      service.endpointsEnabled !== false
+                        ? `${service.endpointCount} endpoints`
+                        : "No aplica",
+                  },
+                  {
+                    key: "actions",
+                    label: "Acciones",
+                    render: (service: TenantServiceOverview) => (
+                      <div className="row-actions">
+                        {canManageServices && (
+                          <button
+                            className="link"
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                `/clients/${tenantId}/services/${service.serviceCode}`,
+                              )
+                            }
+                          >
+                            Gestionar
+                          </button>
+                        )}
+                        {canManageSubscription && (
+                          <button
+                            className="link"
+                            type="button"
+                            onClick={() => handleUnassignService(service)}
+                            disabled={serviceRemoveBusy}
+                          >
+                            Desasignar
+                          </button>
+                        )}
+                        {canDeleteServiceAssignment && (
+                          <button
+                            className="link danger"
+                            type="button"
+                            onClick={() => handleDeleteServiceAssignment(service)}
+                            disabled={serviceRemoveBusy}
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]}
+                data={contractedServices}
+                getRowId={(service) => service.serviceCode}
                 pageSize={6}
-                filterKeys={["name", "email", "status"]}
+                filterKeys={["name", "serviceCode", "subscriptionStatus"]}
               />
-              {chatUsers.length === 0 && (
-                <div className="muted">Sin usuarios creados.</div>
-              )}
+            )}
+          </div>
+          <div className="card full-width">
+            <div className="card-header">
+              <div>
+                <h2>Usuarios de chat</h2>
+                <p className="muted">
+                  Gestiona todos los usuarios creados para todos los servicios.
+                  Para ver los de un servicio concreto, es necesario ir a la
+                  página de ese servicio.
+                </p>
+              </div>
             </div>
-          </>
-        )}
+            <DataTable
+              columns={chatUserColumns}
+              data={chatUsers}
+              getRowId={(user) => user.id}
+              pageSize={6}
+              filterKeys={["name", "email", "status"]}
+            />
+            {chatUsers.length === 0 && (
+              <div className="muted">Sin usuarios creados.</div>
+            )}
+          </div>
+        </>
       </div>
 
       {assignServicesModalOpen && (
@@ -3805,6 +3964,27 @@ export function ClientSummaryPage() {
                           <span className="kv-label">Tenant ID</span>
                           <span className="kv-value">
                             {addonEnvValues?.tenantId || "—"}
+                          </span>
+                        </div>
+                        <div className="kv-item">
+                          <span className="kv-label">Service ID</span>
+                          <span className="kv-value kv-row">
+                            <span className="kv-text">
+                              {addonEnvValues?.serviceId || "—"}
+                            </span>
+                            {addonEnvValues?.serviceId && (
+                              <button
+                                className="btn small"
+                                onClick={() =>
+                                  handleCopy(
+                                    addonEnvValues.serviceId,
+                                    "Service ID",
+                                  )
+                                }
+                              >
+                                Copiar
+                              </button>
+                            )}
                           </span>
                         </div>
                         <div className="kv-item">

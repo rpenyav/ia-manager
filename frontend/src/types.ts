@@ -139,11 +139,13 @@ export type TenantServiceOverview = {
   subscriptionStatus: 'active' | 'pending' | 'pending_removal' | 'disabled';
   activateAt: string | null;
   deactivateAt?: string | null;
+  tenantServiceId?: string | null;
   configStatus: 'active' | 'suspended';
   systemPrompt: string | null;
   providerId?: string | null;
   pricingId?: string | null;
   policyId?: string | null;
+  serviceApiKey?: string | null;
   userCount: number;
   endpointCount: number;
 };

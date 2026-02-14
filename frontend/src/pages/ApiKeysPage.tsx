@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { PageWithDocs } from '../components/PageWithDocs';
 import { emitToast } from '../toast';
+import { copyToClipboard } from '../utils/clipboard';
+import { storeTenantApiKey } from '../utils/apiKeyStorage';
 import { FieldWithHelp } from '../components/FieldWithHelp';
 import { useDashboard } from '../dashboard';
 
@@ -51,6 +53,9 @@ export function ApiKeysPage() {
       }
       const created = await api.createApiKey(payload);
       setCreatedKey(created.apiKey);
+      if (payload.tenantId && created?.apiKey) {
+        storeTenantApiKey(payload.tenantId, created.apiKey);
+      }
       emitToast('API key creada');
       setForm({ name: '', tenantId: '' });
       await load();
@@ -107,6 +112,14 @@ export function ApiKeysPage() {
               <div className="mini-row">
                 <span>API Key</span>
                 <span>{createdKey}</span>
+                <div className="row-actions">
+                  <button
+                    className="link"
+                    onClick={() => copyToClipboard(createdKey, 'API key')}
+                  >
+                    Copiar
+                  </button>
+                </div>
               </div>
             </div>
           )}
