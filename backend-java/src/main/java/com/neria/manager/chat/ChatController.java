@@ -4,13 +4,20 @@ import com.neria.manager.common.security.AuthContext;
 import com.neria.manager.common.security.AuthUtils;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -18,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ChatController {
   private final ChatService chatService;
   private final ChatAuthService chatAuthService;
+  private final ExecutorService streamExecutor = Executors.newCachedThreadPool();
 
   public ChatController(ChatService chatService, ChatAuthService chatAuthService) {
     this.chatService = chatService;
@@ -109,5 +117,61 @@ public class ChatController {
     AuthContext auth = AuthUtils.requireAuth(request);
     String apiKeyId = auth.getApiKeyId();
     return chatService.addMessage(tenantId, userId, apiKeyId, id, dto);
+  }
+
+  @PostMapping(value = "/conversations/{id}/messages/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter addMessageStream(
+      HttpServletRequest request,
+      @PathVariable String id,
+      @RequestBody ChatService.CreateMessageRequest dto) {
+    String tenantId = resolveTenantId(request);
+    Claims claims = requireChatToken(request, tenantId);
+    String userId = requireUserId(claims);
+    AuthContext auth = AuthUtils.requireAuth(request);
+    String apiKeyId = auth.getApiKeyId();
+
+    SseEmitter emitter = new SseEmitter(0L);
+    streamExecutor.execute(
+        () -> {
+          try {
+            ChatService.AddMessageResult result =
+                chatService.addMessageForStreaming(tenantId, userId, apiKeyId, id, dto);
+            String content =
+                result.message != null && result.message.getContent() != null
+                    ? result.message.getContent()
+                    : "";
+            List<String> chunks = splitChunks(content);
+            for (String chunk : chunks) {
+              emitter.send(
+                  SseEmitter.event()
+                      .name("delta")
+                      .data(
+                          Map.of(
+                              "delta", chunk,
+                              "conversationId", result.conversationId)));
+              Thread.sleep(15);
+            }
+            emitter.send(
+                SseEmitter.event()
+                    .name("done")
+                    .data(Map.of("conversationId", result.conversationId, "done", true)));
+            emitter.complete();
+          } catch (Exception ex) {
+            emitter.completeWithError(ex);
+          }
+        });
+    return emitter;
+  }
+
+  private List<String> splitChunks(String content) {
+    List<String> chunks = new ArrayList<>();
+    if (content == null || content.isBlank()) {
+      return chunks;
+    }
+    int size = 24;
+    for (int i = 0; i < content.length(); i += size) {
+      chunks.add(content.substring(i, Math.min(content.length(), i + size)));
+    }
+    return chunks;
   }
 }

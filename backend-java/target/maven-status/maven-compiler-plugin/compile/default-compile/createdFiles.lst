@@ -101,6 +101,7 @@ com/neria/manager/dbconnections/DbConnectionsService.class
 com/neria/manager/auth/AuthService.class
 com/neria/manager/tenantservices/TenantServicesService$ChatUserSummary.class
 com/neria/manager/chatbots/ChatbotsService$ChatbotSqlRequest.class
+com/neria/manager/chat/ChatService$EndpointFetch.class
 com/neria/manager/common/repos/SubscriptionHistoryRepository.class
 com/neria/manager/audit/AuditService.class
 com/neria/manager/common/repos/PolicyRepository.class
@@ -150,6 +151,7 @@ com/neria/manager/tenantservices/TenantServicesController$UpdateConfigRequest.cl
 com/neria/manager/chat/ChatTokenService.class
 com/neria/manager/adapters/ProviderInvocationResult.class
 com/neria/manager/common/entities/PricingModel.class
+com/neria/manager/chat/ChatService$AddMessageResult.class
 com/neria/manager/webhooks/WebhooksController.class
 com/neria/manager/notifications/NotificationsService$UpdateChannelRequest.class
 com/neria/manager/tenants/TenantsService.class
@@ -187,6 +189,7 @@ com/neria/manager/common/repos/TenantLoginLogRepository.class
 com/neria/manager/webhooks/WebhooksService$UpdateWebhookRequest.class
 com/neria/manager/adapters/AwsBedrockAdapter.class
 com/neria/manager/config/AppProperties$Jwt.class
+com/neria/manager/chat/ChatService$EndpointContext.class
 com/neria/manager/common/services/EncryptionService.class
 com/neria/manager/servicecatalog/ServiceCatalogController.class
 com/neria/manager/common/entities/ChatMessage.class

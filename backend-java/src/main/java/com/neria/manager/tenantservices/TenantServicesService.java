@@ -219,6 +219,12 @@ public class TenantServicesService {
     return configRepository.save(config);
   }
 
+  public TenantServiceConfig getConfig(String tenantId, String serviceCode) {
+    ensureTenant(tenantId);
+    String normalized = normalizeServiceCode(serviceCode);
+    return configRepository.findByTenantIdAndServiceCode(tenantId, normalized).orElse(null);
+  }
+
   public List<TenantServiceEndpointResponse> listEndpoints(String tenantId, String serviceCode) {
     ensureTenant(tenantId);
     List<TenantServiceEndpoint> endpoints =
@@ -249,6 +255,10 @@ public class TenantServicesService {
     created.setPath(payload.path.trim());
     created.setBaseUrl(payload.baseUrl != null ? payload.baseUrl.trim() : null);
     created.setHeaders(payload.headers != null ? toJson(payload.headers) : null);
+    created.setResponsePath(
+        payload.responsePath != null && !payload.responsePath.isBlank()
+            ? payload.responsePath.trim()
+            : null);
     created.setEnabled(payload.enabled == null || payload.enabled);
     created.setCreatedAt(LocalDateTime.now());
     created.setUpdatedAt(LocalDateTime.now());
@@ -286,6 +296,13 @@ public class TenantServicesService {
     }
     if (payload.headers == null && payload.headersSet) {
       endpoint.setHeaders(null);
+    }
+    if (payload.responsePath != null) {
+      String trimmed = payload.responsePath.trim();
+      endpoint.setResponsePath(trimmed.isEmpty() ? null : trimmed);
+    }
+    if (payload.responsePath == null && payload.responsePathSet) {
+      endpoint.setResponsePath(null);
     }
     if (payload.enabled != null) {
       endpoint.setEnabled(payload.enabled);
@@ -480,6 +497,7 @@ public class TenantServicesService {
     response.createdAt = endpoint.getCreatedAt();
     response.updatedAt = endpoint.getUpdatedAt();
     response.headers = parseJson(endpoint.getHeaders());
+    response.responsePath = endpoint.getResponsePath();
     return response;
   }
 
@@ -536,6 +554,7 @@ public class TenantServicesService {
     public String path;
     public String baseUrl;
     public Map<String, String> headers;
+    public String responsePath;
     public boolean enabled;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
@@ -588,6 +607,7 @@ public class TenantServicesService {
     public String path;
     public String baseUrl;
     public Map<String, String> headers;
+    public String responsePath;
     public Boolean enabled;
   }
 
@@ -599,6 +619,8 @@ public class TenantServicesService {
     public boolean baseUrlSet;
     public Map<String, String> headers;
     public boolean headersSet;
+    public String responsePath;
+    public boolean responsePathSet;
     public Boolean enabled;
   }
 }

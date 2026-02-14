@@ -43,6 +43,11 @@ public class TenantChatAuthController {
     }
     String tenantId = AuthUtils.resolveTenantId(auth, request);
     String serviceCode = auth.getServiceCode();
+    if ((serviceCode == null || serviceCode.isBlank())
+        && (dto == null || dto.serviceCode == null || dto.serviceCode.isBlank())
+        && (dto == null || dto.tenantServiceId == null || dto.tenantServiceId.isBlank())) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Service code required");
+    }
     if (dto != null && dto.tenantServiceId != null && !dto.tenantServiceId.isBlank()) {
       serviceCode = resolveServiceCode(tenantId, dto.tenantServiceId.trim(), serviceCode);
     }

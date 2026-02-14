@@ -104,6 +104,8 @@ export const fieldHelp = {
   serviceApiBaseUrl: 'URL base de la API a la que apuntara el servicio en integraciones externas.',
   serviceEndpointsEnabled:
     'Indica si este servicio permite configurar endpoints por tenant.',
+  serviceEndpointResponsePath:
+    'Ruta en el JSON donde se encuentra la lista de datos (ej: list, data.items, results). Si se deja vacío, se intenta usar "list".',
   servicePriceMonthly: 'Precio mensual en EUR.',
   servicePriceAnnual: 'Precio anual en EUR.',
   serviceEnabled: 'Activa o desactiva el servicio para nuevos tenants.'

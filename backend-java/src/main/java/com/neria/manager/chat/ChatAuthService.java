@@ -4,6 +4,7 @@ import com.neria.manager.common.entities.ChatUser;
 import com.neria.manager.common.repos.ChatUserRepository;
 import com.neria.manager.common.repos.TenantServiceUserRepository;
 import com.neria.manager.common.services.ScryptHasher;
+import com.neria.manager.tenantservices.TenantServicesService;
 import io.jsonwebtoken.Claims;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ChatAuthService {
   private final ChatUserRepository chatUserRepository;
   private final TenantServiceUserRepository tenantServiceUserRepository;
+  private final TenantServicesService tenantServicesService;
   private final ScryptHasher scryptHasher;
   private final ChatTokenService tokenService;
   private final String salt;
@@ -24,10 +26,12 @@ public class ChatAuthService {
   public ChatAuthService(
       ChatUserRepository chatUserRepository,
       TenantServiceUserRepository tenantServiceUserRepository,
+      TenantServicesService tenantServicesService,
       ScryptHasher scryptHasher,
       ChatTokenService tokenService) {
     this.chatUserRepository = chatUserRepository;
     this.tenantServiceUserRepository = tenantServiceUserRepository;
+    this.tenantServicesService = tenantServicesService;
     this.scryptHasher = scryptHasher;
     this.tokenService = tokenService;
     String envSalt = System.getenv().getOrDefault("CHAT_PASSWORD_SALT", "");
@@ -68,6 +72,9 @@ public class ChatAuthService {
   }
 
   public Map<String, Object> login(String tenantId, LoginChatUserRequest dto) {
+    if (dto == null || dto.serviceCode == null || dto.serviceCode.isBlank()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Service code required");
+    }
     String email = dto.email == null ? "" : dto.email.trim().toLowerCase();
     ChatUser user =
         chatUserRepository
@@ -80,15 +87,15 @@ public class ChatAuthService {
     if (!matches(dto.password, user.getPasswordHash())) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
-    if (dto.serviceCode != null && !dto.serviceCode.isBlank()) {
-      String code = dto.serviceCode.trim();
-      var assignment =
-          tenantServiceUserRepository.findByTenantIdAndServiceCodeAndUserId(
-              tenantId, code, user.getId());
-      if (assignment.isEmpty() || !"active".equals(assignment.get().getStatus())) {
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-      }
+    String code = dto.serviceCode.trim();
+    var assignment =
+        tenantServiceUserRepository.findByTenantIdAndServiceCodeAndUserId(
+            tenantId, code, user.getId());
+    if (assignment.isEmpty() || !"active".equals(assignment.get().getStatus())) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
+    // Validamos además que el servicio esté activo y accesible
+    tenantServicesService.requireServiceAccess(tenantId, code, user.getId());
     return issueToken(user);
   }
 

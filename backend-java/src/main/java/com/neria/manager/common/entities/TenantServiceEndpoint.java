@@ -38,6 +38,9 @@ public class TenantServiceEndpoint {
   @Column(columnDefinition = "json")
   private String headers;
 
+  @Column(length = 255)
+  private String responsePath;
+
   @Column(nullable = false)
   private boolean enabled;
 

@@ -159,6 +159,7 @@ export type TenantServiceEndpoint = {
   path: string;
   baseUrl?: string | null;
   headers?: Record<string, string> | null;
+  responsePath?: string | null;
   enabled: boolean;
   createdAt: string;
   updatedAt: string;

@@ -85,6 +85,7 @@ export function TenantServiceDetailPage() {
     path: "",
     baseUrl: "",
     headers: "",
+    responsePath: "",
     enabled: true,
   });
   const [serviceEndpointMode, setServiceEndpointMode] = useState<
@@ -445,6 +446,7 @@ export function TenantServiceDetailPage() {
             path: serviceEndpointDraft.path,
             baseUrl: serviceEndpointDraft.baseUrl || null,
             headers,
+            responsePath: serviceEndpointDraft.responsePath || null,
             enabled: serviceEndpointDraft.enabled,
           },
         );
@@ -455,6 +457,7 @@ export function TenantServiceDetailPage() {
           path: serviceEndpointDraft.path,
           baseUrl: serviceEndpointDraft.baseUrl || null,
           headers,
+          responsePath: serviceEndpointDraft.responsePath || null,
           enabled: serviceEndpointDraft.enabled,
         });
       }
@@ -470,6 +473,7 @@ export function TenantServiceDetailPage() {
         path: "",
         baseUrl: "",
         headers: "",
+        responsePath: "",
         enabled: true,
       });
       setServiceEndpointMode("create");
@@ -491,6 +495,7 @@ export function TenantServiceDetailPage() {
       headers: endpoint.headers
         ? JSON.stringify(endpoint.headers, null, 2)
         : "",
+      responsePath: endpoint.responsePath || "",
       enabled: endpoint.enabled,
     });
     setServiceEndpointMode("edit");
@@ -746,6 +751,15 @@ export function TenantServiceDetailPage() {
         {loading && <LoaderComponent label="Cargando servicio" />}
         {!loading && service && (
           <>
+            {service.subscriptionStatus === "pending" && (
+              <div className="info-banner">
+                Esta suscripción está pendiente de activación. El servicio no
+                estará operativo{" "}
+                {service.activateAt
+                  ? `hasta ${new Date(service.activateAt).toLocaleString()}.`
+                  : "hasta que se active."}
+              </div>
+            )}
             <div className="row g-3 form-grid-13">
               <div className="col-12 col-md-4">
                 <label>
@@ -1052,6 +1066,25 @@ export function TenantServiceDetailPage() {
                   </div>
                   <div className="col-12 col-md-4">
                     <label>
+                      <span className="label-with-tooltip">
+                        Path de extracción (opcional)
+                        <InfoTooltip field="serviceEndpointResponsePath" />
+                      </span>
+                      <input
+                        className="form-control"
+                        value={serviceEndpointDraft.responsePath}
+                        onChange={(event) =>
+                          setServiceEndpointDraft((prev) => ({
+                            ...prev,
+                            responsePath: event.target.value,
+                          }))
+                        }
+                        placeholder='{ "list": [...] }'
+                      />
+                    </label>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label>
                       <input
                         type="checkbox"
                         checked={serviceEndpointDraft.enabled}
@@ -1109,6 +1142,7 @@ export function TenantServiceDetailPage() {
                           path: "",
                           baseUrl: "",
                           headers: "",
+                          responsePath: "",
                           enabled: true,
                         });
                       }}
@@ -1123,6 +1157,13 @@ export function TenantServiceDetailPage() {
                     { key: "slug", label: "Slug", sortable: true },
                     { key: "method", label: "Método", sortable: true },
                     { key: "path", label: "Path", sortable: true },
+                    {
+                      key: "responsePath",
+                      label: "Path extracción",
+                      sortable: true,
+                      render: (row: TenantServiceEndpoint) =>
+                        row.responsePath || "—",
+                    },
                     {
                       key: "enabled",
                       label: "Estado",
@@ -1155,7 +1196,7 @@ export function TenantServiceDetailPage() {
                   data={serviceEndpoints}
                   getRowId={(row) => row.id}
                   pageSize={5}
-                  filterKeys={["slug", "method", "path"]}
+                  filterKeys={["slug", "method", "path", "responsePath"]}
                 />
                 {serviceEndpoints.length === 0 && (
                   <div className="muted">Sin endpoints configurados.</div>
