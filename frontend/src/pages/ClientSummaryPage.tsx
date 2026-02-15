@@ -11,6 +11,7 @@ import { useDashboard } from "../dashboard";
 import { emitToast } from "../toast";
 import Swal from "sweetalert2";
 import { MultiSelectDropdown } from "../components/MultiSelectDropdown";
+import { jsPDF } from "jspdf";
 import type {
   ApiKeySummary,
   AuditEvent,
@@ -47,7 +48,8 @@ export function ClientSummaryPage() {
   const canEditTenant = role === "admin" || role === "tenant";
   const canManageChatUsers = role === "admin" || role === "tenant";
   const canManageServices = role === "admin" || role === "tenant";
-  const canManageSubscription = role === "admin" || role === "tenant";
+  const canManageSubscription = role === "admin";
+  const canCancelSubscription = role === "admin" || role === "tenant";
   const canDeleteSubscription = role === "admin";
   const canDeleteServiceAssignment = role === "admin";
   const canManagePricing = role === "admin";
@@ -358,8 +360,21 @@ export function ClientSummaryPage() {
     subscriptionForm.period,
     subscriptionForm.basePriceEur,
   ]);
+  const canReactivateSubscription = useMemo(() => {
+    if (!subscription || !subscription.cancelAtPeriodEnd) {
+      return false;
+    }
+    if (subscription.status !== "active") {
+      return false;
+    }
+    if (!subscription.currentPeriodEnd) {
+      return false;
+    }
+    return new Date(subscription.currentPeriodEnd).getTime() > Date.now();
+  }, [subscription]);
 
   const canReviewSubscription =
+    canManageSubscription &&
     Boolean(tenant?.billingEmail) &&
     hasTenantApiKey &&
     Number(subscriptionForm.basePriceEur || 0) > 0 &&
@@ -1040,6 +1055,9 @@ export function ClientSummaryPage() {
     if (!tenantId) {
       return;
     }
+    if (!canManageSubscription) {
+      return;
+    }
     if (!hasTenantApiKey) {
       await Swal.fire({
         title: "API key requerida",
@@ -1157,6 +1175,9 @@ export function ClientSummaryPage() {
     if (!tenantId || !subscription) {
       return;
     }
+    if (!canManageSubscription) {
+      return;
+    }
     if (!addonServiceCode) {
       setAddonError("Selecciona un servicio para añadir.");
       return;
@@ -1267,7 +1288,9 @@ export function ClientSummaryPage() {
     }
   };
 
-  const handleDeleteServiceAssignment = async (service: TenantServiceOverview) => {
+  const handleDeleteServiceAssignment = async (
+    service: TenantServiceOverview,
+  ) => {
     if (!tenantId) {
       return;
     }
@@ -1657,12 +1680,18 @@ export function ClientSummaryPage() {
     if (!tenantId || !subscription) {
       return;
     }
+    if (!canCancelSubscription) {
+      return;
+    }
+    if (mode === "now" && role !== "admin") {
+      return;
+    }
     const result = await Swal.fire({
       title: "Confirmar suscripción",
       text:
         mode === "now"
           ? "¿Dar de baja inmediata a esta suscripción?"
-          : "¿Cancelar al final del periodo actual?",
+          : "La cancelación pondrá fin a la suscripción antes de la próxima renovación. Los servicios adquiridos quedarán inactivos, se congelará el gasto y seguirán listados. Podrás reactivar la suscripción antes de la próxima fecha de renovación. Si la suscripción finaliza en su periodo, los servicios se desvincularán definitivamente.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Confirmar",
@@ -1689,9 +1718,59 @@ export function ClientSummaryPage() {
           .map((item: any) => item.serviceCode),
         cancelAtPeriodEnd: Boolean(updated.subscription.cancelAtPeriodEnd),
       });
+      await refreshTenantServices();
       emitToast("Suscripción actualizada");
     } catch (err: any) {
       setError(err.message || "Error actualizando suscripción");
+    } finally {
+      const elapsed = Date.now() - startedAt;
+      const remaining = 3000 - elapsed;
+      if (remaining > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
+      setSubscriptionCreating(false);
+      setSubscriptionBusy(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    if (!tenantId || !subscription) {
+      return;
+    }
+    if (!canReactivateSubscription) {
+      return;
+    }
+    const result = await Swal.fire({
+      title: "Reactivar suscripción",
+      text: "La suscripción volverá a estar activa y los servicios quedarán operativos inmediatamente. Podrás volver a cancelar antes del fin del periodo si lo necesitas.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Reactivar",
+      cancelButtonText: "Cancelar",
+    });
+    if (!result.isConfirmed) {
+      return;
+    }
+    const startedAt = Date.now();
+    try {
+      setSubscriptionCreating(true);
+      setSubscriptionBusy(true);
+      const updated = await api.updateTenantSubscription(tenantId, {
+        cancelAtPeriodEnd: false,
+      });
+      setSubscriptionSummary(updated as SubscriptionSummary);
+      setSubscriptionForm({
+        period: updated.subscription.period,
+        basePriceEur: Number(updated.subscription.basePriceEur || 0),
+        serviceCodes: (updated.services || [])
+          .filter((item: any) => item.status !== "pending_removal")
+          .map((item: any) => item.serviceCode),
+        cancelAtPeriodEnd: Boolean(updated.subscription.cancelAtPeriodEnd),
+      });
+      await refreshTenantServices();
+      emitToast("Suscripción reactivada");
+    } catch (err: any) {
+      setError(err.message || "Error reactivando suscripción");
     } finally {
       const elapsed = Date.now() - startedAt;
       const remaining = 3000 - elapsed;
@@ -2315,6 +2394,165 @@ export function ClientSummaryPage() {
     [tenantInvoices],
   );
 
+  const invoiceEntryMap = useMemo(
+    () =>
+      new Map(
+        tenantInvoices.map((entry) => [entry.invoice.id, entry] as const),
+      ),
+    [tenantInvoices],
+  );
+
+  const handleDownloadInvoice = (invoiceId: string) => {
+    const entry = invoiceEntryMap.get(invoiceId);
+    if (!entry) {
+      emitToast("No se pudo generar la factura.", "error");
+      return;
+    }
+    const { invoice, items } = entry;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    let y = 40;
+
+    doc.setFillColor(230, 90, 50);
+    doc.circle(margin + 8, y - 6, 8, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("N", margin + 5.5, y - 2);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("NERIA", margin + 24, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    doc.text("Factura", pageWidth - margin - 60, y);
+    y += 16;
+    doc.setDrawColor(220);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 16;
+
+    const neriaBilling = [
+      "Neria AI, S.L.",
+      "CIF: B-12345678",
+      "Calle Gran Vía 123",
+      "08010 Barcelona, España",
+      "billing@neria.ai",
+    ];
+    const tenantBillingName =
+      tenantForm.companyName ||
+      tenantForm.name ||
+      tenant?.name ||
+      "Cliente";
+    const tenantBilling = [
+      tenantBillingName,
+      tenantForm.billingEmail || "Email no definido",
+      tenantForm.billingAddressLine1 || "Dirección no definida",
+      [
+        tenantForm.billingPostalCode,
+        tenantForm.billingCity,
+        tenantForm.billingCountry,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    ].filter(Boolean);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Emisor", margin, y);
+    doc.text("Cliente", pageWidth / 2 + 10, y);
+    const rightStartY = y + 14;
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    neriaBilling.forEach((line) => {
+      doc.text(line, margin, y);
+      y += 12;
+    });
+    let rightY = rightStartY;
+    tenantBilling.forEach((line) => {
+      doc.text(line, pageWidth / 2 + 10, rightY);
+      rightY += 12;
+    });
+    y = Math.max(y, rightY) + 8;
+    doc.setDrawColor(220);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 16;
+
+    const metaRows = [
+      ["Factura ID", invoice.id],
+      [
+        "Fecha emisión",
+        new Date(invoice.issuedAt).toLocaleDateString(),
+      ],
+      ["Periodo", invoice.period],
+      ["Estado", invoice.status],
+    ];
+    doc.setFont("helvetica", "normal");
+    metaRows.forEach(([label, value]) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(value), margin + 100, y);
+      y += 12;
+    });
+    y += 8;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Concepto", margin, y);
+    doc.text("Importe", pageWidth - margin, y, { align: "right" });
+    y += 10;
+    doc.setDrawColor(220);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 14;
+
+    const basePrice = Number(invoice.basePriceEur || 0);
+    const lineItems: Array<[string, number]> = [];
+    if (basePrice > 0) {
+      lineItems.push(["Suscripción base", basePrice]);
+    }
+    items.forEach((item) => {
+      lineItems.push([
+        item.description || item.serviceCode,
+        Number(item.priceEur || 0),
+      ]);
+    });
+    lineItems.forEach(([label, amount]) => {
+      doc.setFont("helvetica", "normal");
+      doc.text(label, margin, y, { maxWidth: 300 });
+      doc.text(formatEur(amount), pageWidth - margin, y, { align: "right" });
+      y += 14;
+      if (y > pageHeight - margin - 80) {
+        doc.addPage();
+        y = margin;
+      }
+    });
+
+    const subtotal =
+      lineItems.reduce((sum, [, amount]) => sum + amount, 0) ||
+      Number(invoice.totalEur || 0);
+    const taxRate = 0.21;
+    const tax = subtotal * taxRate;
+    const total = subtotal + tax;
+
+    y += 6;
+    doc.setDrawColor(220);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.text("Subtotal", pageWidth - margin - 140, y);
+    doc.text(formatEur(subtotal), pageWidth - margin, y, { align: "right" });
+    y += 14;
+    doc.text(`Impuesto (${Math.round(taxRate * 100)}%)`, pageWidth - margin - 140, y);
+    doc.text(formatEur(tax), pageWidth - margin, y, { align: "right" });
+    y += 18;
+    doc.setFont("helvetica", "bold");
+    doc.text("Total", pageWidth - margin - 140, y);
+    doc.text(formatEur(total), pageWidth - margin, y, { align: "right" });
+
+    doc.save(`factura-${invoice.id}.pdf`);
+  };
+
   const invoiceColumns: DataTableColumn<InvoiceRow>[] = [
     {
       key: "issuedAt",
@@ -2342,6 +2580,22 @@ export function ClientSummaryPage() {
       label: "Estado",
       sortable: true,
       render: (row) => <StatusBadgeIcon status={row.status} />,
+    },
+    {
+      key: "download",
+      label: "",
+      render: (row) => (
+        <div className="icon-actions">
+          <button
+            type="button"
+            className="icon-button"
+            title="Descargar PDF"
+            onClick={() => handleDownloadInvoice(row.id)}
+          >
+            ⤓
+          </button>
+        </div>
+      ),
     },
   ];
 
@@ -2513,7 +2767,7 @@ export function ClientSummaryPage() {
               )}
             </div>
 
-            {!(isTenant && pricingSelection.length === 0) && (
+            {/* {!(isTenant && pricingSelection.length === 0) && (
               <div className="card">
                 <div>
                   <h2>API Keys</h2>
@@ -2572,7 +2826,7 @@ export function ClientSummaryPage() {
                   </button>
                 )}
               </div>
-            )}
+            )} */}
 
             <div className="card">
               <h2>Tendencia de uso</h2>
@@ -2646,7 +2900,7 @@ export function ClientSummaryPage() {
                 <p className="muted">Últimos eventos de consumo.</p>
               </div>
 
-              <div className="mini-list">
+              <div className="mini-list usage-logs-list">
                 {usageEvents.map((event) => (
                   <div className="mini-row usage-logs-row" key={event.id}>
                     <div className="row align-items-center">
@@ -2677,7 +2931,7 @@ export function ClientSummaryPage() {
               {usageEvents.length === 0 && (
                 <div className="muted">Sin eventos de uso.</div>
               )}
-              <a className="btn primary" href="/usage">
+              <a className="btn primary" href={`/clients/${tenantId}/usage`}>
                 Ver Usage
               </a>
             </div>
@@ -2685,7 +2939,7 @@ export function ClientSummaryPage() {
             <div className="card">
               <h2>Auditoría</h2>
               <p className="muted tight">Eventos de auditoría más recientes.</p>
-              <div className="audit-list">
+              <div className="audit-list audit-list-scroll">
                 {auditEvents.map((event) => (
                   <div className="audit-item" key={event.id}>
                     <div>
@@ -2703,6 +2957,16 @@ export function ClientSummaryPage() {
               {auditEvents.length === 0 && (
                 <div className="muted">Sin auditoría.</div>
               )}
+            </div>
+
+            <div className="card">
+              <h2>Observability</h2>
+              <p className="muted tight">
+                Salud del provider, endpoints y alertas activas del tenant.
+              </p>
+              <a className="btn primary" href={`/clients/${tenantId}/observability`}>
+                Ver observability
+              </a>
             </div>
           </section>
         </div>
@@ -2906,16 +3170,18 @@ export function ClientSummaryPage() {
                     <div className="muted">No hay pricing asociado.</div>
                   ) : (
                     <div className="form-grid">
-                      <div className="multiselect-wrapper pricing-selector">
-                        <MultiSelectDropdown
-                          options={pricingOptions}
-                          selected={pricingSelection}
-                          disabled={!canManagePricing}
-                          placeholder="Selecciona pricing"
-                          maxHeight={260}
-                          onChange={handlePricingSelectionChange}
-                        />
-                      </div>
+                      {!isTenant && (
+                        <div className="multiselect-wrapper pricing-selector">
+                          <MultiSelectDropdown
+                            options={pricingOptions}
+                            selected={pricingSelection}
+                            disabled={!canManagePricing}
+                            placeholder="Selecciona pricing"
+                            maxHeight={260}
+                            onChange={handlePricingSelectionChange}
+                          />
+                        </div>
+                      )}
                       {selectedPricingEntries.length > 0 && (
                         <div className="mini-list full-row">
                           {selectedPricingEntries.map((entry) => (
@@ -3002,14 +3268,18 @@ export function ClientSummaryPage() {
                       {!subscription && (
                         <>
                           <div className="muted">
-                            Este cliente aún no tiene suscripción. Puedes
-                            crearla desde aquí.
+                            Este cliente aún no tiene suscripción.
+                            {canManageSubscription
+                              ? " Puedes crearla desde aquí."
+                              : " Contacta con un administrador para crearla."}
                           </div>
-                          <div className="info-banner">
-                            Para crear la suscripción necesitas email de
-                            facturación, una API key activa y un precio base
-                            mayor que 0.
-                          </div>
+                          {canManageSubscription && (
+                            <div className="info-banner">
+                              Para crear la suscripción necesitas email de
+                              facturación, una API key activa y un precio base
+                              mayor que 0.
+                            </div>
+                          )}
                         </>
                       )}
                       {subscription && (
@@ -3079,9 +3349,18 @@ export function ClientSummaryPage() {
                               servicios o crear una suscripción.
                             </div>
                           )}
+                          {subscription?.cancelAtPeriodEnd &&
+                            !canReactivateSubscription && (
+                              <div className="info-banner full-row">
+                                La suscripción ya ha finalizado y no se puede
+                                reactivar.
+                              </div>
+                            )}
                           <div className="subscription-controls mt-3 mb-4 full-row">
                             <div className="subscription-label-row">
-                              <span className="subscription-label">Periodo</span>
+                              <span className="subscription-label">
+                                Periodo
+                              </span>
                               <span className="subscription-label">
                                 Base € (mensual o anual según periodo)
                               </span>
@@ -3164,6 +3443,18 @@ export function ClientSummaryPage() {
                                 >
                                   Cancelar al final
                                 </button>
+                                {subscription.cancelAtPeriodEnd && (
+                                  <button
+                                    className="btn"
+                                    onClick={handleReactivateSubscription}
+                                    disabled={
+                                      subscriptionBusy ||
+                                      !canReactivateSubscription
+                                    }
+                                  >
+                                    Reactivar
+                                  </button>
+                                )}
                                 <button
                                   className="btn danger"
                                   onClick={() =>
@@ -3183,6 +3474,52 @@ export function ClientSummaryPage() {
                                   </button>
                                 )}
                               </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {subscription && !canManageSubscription && (
+                        <div className="form-grid">
+                          <div className="info-banner full-row">
+                            No tienes permisos para modificar la suscripción.
+                            Puedes solicitar la cancelación al final del
+                            periodo si lo necesitas.
+                          </div>
+                          {subscription.cancelAtPeriodEnd && (
+                            <div className="info-banner full-row">
+                              Esta suscripción ya está marcada para cancelarse
+                              al final del periodo actual.
+                            </div>
+                          )}
+                          {subscription.cancelAtPeriodEnd &&
+                            !canReactivateSubscription && (
+                              <div className="info-banner full-row">
+                                La suscripción ya ha finalizado y no se puede
+                                reactivar.
+                              </div>
+                            )}
+                          <div className="form-actions">
+                            <button
+                              className="btn"
+                              onClick={() => handleCancelSubscription("period")}
+                              disabled={
+                                subscriptionBusy ||
+                                subscription.cancelAtPeriodEnd
+                              }
+                            >
+                              Cancelar al final
+                            </button>
+                            {subscription.cancelAtPeriodEnd && (
+                              <button
+                                className="btn"
+                                onClick={handleReactivateSubscription}
+                                disabled={
+                                  subscriptionBusy ||
+                                  !canReactivateSubscription
+                                }
+                              >
+                                Reactivar
+                              </button>
                             )}
                           </div>
                         </div>
@@ -3584,8 +3921,8 @@ export function ClientSummaryPage() {
                 <h2>Servicios asignados</h2>
                 <p className="muted">
                   Configura parámetros y, si aplica, endpoints de cada servicio.
-                  Para gestionar un servicio, pulse en "Gestionar" para abrir
-                  la página detalles del servicio.
+                  Para gestionar un servicio, pulse en "Gestionar" para abrir la
+                  página detalles del servicio.
                 </p>
               </div>
             </div>
@@ -3638,11 +3975,13 @@ export function ClientSummaryPage() {
                     render: (service: TenantServiceOverview) => {
                       const hasOverride = Boolean(
                         service.providerId ||
-                          service.pricingId ||
-                          service.policyId,
+                        service.pricingId ||
+                        service.policyId,
                       );
                       return (
-                        <span className={`pill ${hasOverride ? "pill-alt" : ""}`}>
+                        <span
+                          className={`pill ${hasOverride ? "pill-alt" : ""}`}
+                        >
                           {hasOverride ? "Override" : "Global"}
                         </span>
                       );
@@ -3714,7 +4053,9 @@ export function ClientSummaryPage() {
                           <button
                             className="link danger"
                             type="button"
-                            onClick={() => handleDeleteServiceAssignment(service)}
+                            onClick={() =>
+                              handleDeleteServiceAssignment(service)
+                            }
                             disabled={serviceRemoveBusy}
                           >
                             Eliminar
@@ -3761,13 +4102,19 @@ export function ClientSummaryPage() {
           className="modal-backdrop"
           onClick={() => setAssignServicesModalOpen(false)}
         >
-          <div className="modal modal-wide" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="modal modal-wide"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="modal-header">
               <div>
                 <div className="eyebrow">Servicios</div>
                 <h3>Asignar servicios</h3>
               </div>
-              <button className="btn" onClick={() => setAssignServicesModalOpen(false)}>
+              <button
+                className="btn"
+                onClick={() => setAssignServicesModalOpen(false)}
+              >
                 Cerrar
               </button>
             </div>
@@ -3775,8 +4122,8 @@ export function ClientSummaryPage() {
               <div>
                 <h3>Anexo de servicio</h3>
                 <p className="muted">
-                  Añade un servicio a la suscripción. El importe se reflejará
-                  en la factura de la suscripción.
+                  Añade un servicio a la suscripción. El importe se reflejará en
+                  la factura de la suscripción.
                 </p>
               </div>
               {!subscription && (
@@ -3791,7 +4138,9 @@ export function ClientSummaryPage() {
               )}
               {subscription && canManageSubscription && (
                 <>
-                  {addonError && <div className="error-banner">{addonError}</div>}
+                  {addonError && (
+                    <div className="error-banner">{addonError}</div>
+                  )}
                   {addonSelectOptions.length === 0 ? (
                     <div className="muted">
                       No hay servicios disponibles para anexar.
@@ -3885,8 +4234,8 @@ export function ClientSummaryPage() {
                             </label>
                             {!addonAlreadyAdded && (
                               <div className="info-banner full-row">
-                                Añade primero el servicio a la suscripción
-                                para guardar endpoints.
+                                Añade primero el servicio a la suscripción para
+                                guardar endpoints.
                               </div>
                             )}
                             {addonEndpointsError && (
@@ -4002,7 +4351,10 @@ export function ClientSummaryPage() {
                             </div>
                             <div className="endpoint-list">
                               {addonEndpoints.map((endpoint) => (
-                                <div className="endpoint-item" key={endpoint.id}>
+                                <div
+                                  className="endpoint-item"
+                                  key={endpoint.id}
+                                >
                                   <span className="endpoint-method">
                                     {endpoint.method}
                                   </span>
@@ -4030,9 +4382,7 @@ export function ClientSummaryPage() {
                           <button
                             className="btn"
                             onClick={() => {
-                              setNewApiKeyName(
-                                `Servicio ${addonService.name}`,
-                              );
+                              setNewApiKeyName(`Servicio ${addonService.name}`);
                               setCreatedApiKey(null);
                               setApiKeyModalOpen(true);
                             }}

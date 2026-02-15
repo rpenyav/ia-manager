@@ -464,6 +464,9 @@ public class TenantServicesService {
     if ("pending".equals(subscription.getStatus())) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Service pending activation");
     }
+    if ("pending_removal".equals(subscription.getStatus())) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Service pending removal");
+    }
 
     TenantServiceConfig config = ensureConfig(tenantId, normalized);
     if ("suspended".equals(config.getStatus())) {

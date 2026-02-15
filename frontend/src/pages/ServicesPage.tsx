@@ -48,9 +48,7 @@ export function ServicesPage() {
       setServices((prev) =>
         prev.map((item) => (item.id === service.id ? updated : item)),
       );
-      emitToast(
-        service.enabled ? "Servicio desactivado" : "Servicio activado",
-      );
+      emitToast(service.enabled ? "Servicio desactivado" : "Servicio activado");
       setError(null);
     } catch (err: any) {
       setError(err.message || "Error actualizando servicio");
@@ -96,9 +94,14 @@ export function ServicesPage() {
                 Catálogo de servicios disponibles para clientes.
               </p>
             </div>
-            <Link className="btn primary" to="/services/new">
-              Crear servicio
-            </Link>
+            <div className="card-header-actions">
+              <Link className="btn" to="/">
+                Volver
+              </Link>
+              <Link className="btn primary" to="/services/new">
+                Crear servicio
+              </Link>
+            </div>
           </div>
           <div className="data-table-controls">
             <input
@@ -118,7 +121,7 @@ export function ServicesPage() {
               <span>Acciones</span>
             </div>
             {filtered.map((service) => (
-              <div className="table-row" key={service.id}>
+              <div className="table-row mb-3" key={service.id}>
                 <div className="cell-stack">
                   <span>{service.name}</span>
                   <span className="muted">{service.description}</span>

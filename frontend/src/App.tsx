@@ -13,6 +13,7 @@ import { ProvidersPage } from "./pages/ProvidersPage";
 import { PoliciesPage } from "./pages/PoliciesPage";
 import { RuntimePage } from "./pages/RuntimePage";
 import { UsagePage } from "./pages/UsagePage";
+import { TenantUsagePage } from "./pages/TenantUsagePage";
 import { AuditPage } from "./pages/AuditPage";
 import { PricingPage } from "./pages/PricingPage";
 import { WebhooksPage } from "./pages/WebhooksPage";
@@ -68,9 +69,16 @@ function App() {
                   path="clients/:tenantId/services/:serviceCode"
                   element={<TenantServiceDetailPage />}
                 />
+                <Route
+                  path="clients/:tenantId/observability"
+                  element={<ObservabilityPage />}
+                />
+                <Route
+                  path="clients/:tenantId/usage"
+                  element={<TenantUsagePage />}
+                />
                 <Route path="docs" element={<DocumentationPage />} />
                 <Route path="profile" element={<ProfilePage />} />
-                <Route path="observability" element={<ObservabilityPage />} />
                 <Route element={<AdminRoute />}>
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="services" element={<ServicesPage />} />

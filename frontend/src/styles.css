@@ -220,6 +220,17 @@ html {
   margin-bottom: 28px;
 }
 
+.page-header.page-header-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-header.page-header-split h2 {
+  margin: 0;
+}
+
 .eyebrow {
   font-size: 12px;
   text-transform: uppercase;
@@ -545,6 +556,15 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.page-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.full-row {
+  grid-column: 1 / -1;
+}
+
 .masonry {
   column-count: 2;
   column-gap: 20px;
@@ -695,9 +715,7 @@ h1 {
 }
 
 .profile-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  width: 100%;
 }
 
 .profile-avatar {
@@ -1194,6 +1212,12 @@ h1 {
   margin-bottom: 15px;
 }
 
+.card-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .card-header h4 {
   font-size: 18px;
 }
@@ -1487,6 +1511,12 @@ h1 {
 .audit-list {
   display: grid;
   gap: 12px;
+}
+
+.audit-list.audit-list-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .audit-item {
@@ -1792,6 +1822,12 @@ label input[type="radio"] {
   font-size: 13px;
 }
 
+.mini-list.usage-logs-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .mini-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -1938,6 +1974,18 @@ label input[type="radio"] {
   cursor: not-allowed;
 }
 
+.conversation-messages {
+  max-height: 700px;
+  overflow-y: auto;
+}
+
+.form-divider {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: rgba(17, 17, 17, 0.12);
+  margin: 8px 0;
+}
+
 .full-width {
   width: 100%;
   margin-top: 20px;
@@ -2001,6 +2049,7 @@ label input[type="radio"] {
 
 .accordion-title {
   font-weight: 600;
+  font-size: 22px;
 }
 
 .accordion-desc {

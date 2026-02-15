@@ -17,7 +17,6 @@ const titleMap: Record<string, string> = {
   "/settings": "Settings",
   "/services": "Servicios",
   "/services/new": "Servicios",
-  "/observability": "Observability",
   "/profile": "Perfil",
   "/admin/users": "Usuarios",
   "/admin/subscriptions": "Suscripciones",
@@ -44,6 +43,10 @@ export function DashboardLayout() {
   );
   const [wizardOpen, setWizardOpen] = useState(false);
   const isClientRoute = location.pathname.startsWith("/clients/");
+  const isObservabilityRoute =
+    isClientRoute && location.pathname.includes("/observability");
+  const isUsageRoute =
+    isClientRoute && location.pathname.includes("/usage");
   const navItems =
     role === "tenant"
       ? [
@@ -62,7 +65,6 @@ export function DashboardLayout() {
           { label: "Audit", to: "/audit" },
           { label: "Docs", to: "/docs" },
           ...(role === "admin" ? [{ label: "Settings", to: "/settings" }] : []),
-          { label: "Observability", to: "/observability" },
           { label: "Perfil", to: "/profile" },
           ...(role === "admin"
             ? [
@@ -196,9 +198,27 @@ export function DashboardLayout() {
       </header>
 
       <main className="main">
-        <div className="page-header">
+        <div
+          className={`page-header ${isClientRoute ? "page-header-split" : ""}`}
+        >
           {!isClientRoute && <h1>{pageTitle}</h1>}
-          {isClientRoute && selectedTenant && <h2>{selectedTenant.name}</h2>}
+          {isClientRoute && selectedTenant && (
+            <>
+              <h2>{selectedTenant.name}</h2>
+              {(isObservabilityRoute || isUsageRoute) && (
+                <button
+                  className="btn"
+                  onClick={() =>
+                    selectedTenantId
+                      ? navigate(`/clients/${selectedTenantId}`)
+                      : navigate(-1)
+                  }
+                >
+                  Volver
+                </button>
+              )}
+            </>
+          )}
         </div>
 
         <Outlet />

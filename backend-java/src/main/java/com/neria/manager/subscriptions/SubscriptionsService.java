@@ -464,6 +464,18 @@ public class SubscriptionsService {
             .findByTenantId(tenantId)
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Subscription not found"));
+    boolean wasCancelAtPeriodEnd = subscription.isCancelAtPeriodEnd();
+    LocalDateTime now = LocalDateTime.now();
+    if (dto.cancelAtPeriodEnd != null
+        && !dto.cancelAtPeriodEnd
+        && wasCancelAtPeriodEnd) {
+      LocalDateTime periodEnd = subscription.getCurrentPeriodEnd();
+      if (!"active".equals(subscription.getStatus())
+          || periodEnd == null
+          || !now.isBefore(periodEnd)) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Subscription period ended");
+      }
+    }
 
     if (dto.period != null && !dto.period.equals(subscription.getPeriod())) {
       subscription.setPeriod(dto.period);
@@ -481,7 +493,39 @@ public class SubscriptionsService {
     subscription.setUpdatedAt(LocalDateTime.now());
     subscriptionRepository.save(subscription);
 
-    LocalDateTime now = LocalDateTime.now();
+    if (dto.cancelAtPeriodEnd != null && dto.cancelAtPeriodEnd) {
+      List<SubscriptionService> allServices =
+          subscriptionServiceRepository.findBySubscriptionId(subscription.getId());
+      if (!allServices.isEmpty()) {
+        LocalDateTime deactivateAt =
+            now.isBefore(subscription.getCurrentPeriodEnd())
+                ? subscription.getCurrentPeriodEnd()
+                : now;
+        allServices.forEach(item -> {
+          item.setStatus("pending_removal");
+          item.setDeactivateAt(deactivateAt);
+          item.setUpdatedAt(LocalDateTime.now());
+        });
+        subscriptionServiceRepository.saveAll(allServices);
+      }
+    }
+    if (dto.cancelAtPeriodEnd != null
+        && !dto.cancelAtPeriodEnd
+        && wasCancelAtPeriodEnd
+        && "active".equals(subscription.getStatus())) {
+      List<SubscriptionService> toRestore =
+          subscriptionServiceRepository.findBySubscriptionId(subscription.getId()).stream()
+              .filter(item -> "pending_removal".equals(item.getStatus()))
+              .toList();
+      if (!toRestore.isEmpty()) {
+        toRestore.forEach(item -> {
+          item.setStatus("active");
+          item.setDeactivateAt(null);
+          item.setUpdatedAt(LocalDateTime.now());
+        });
+        subscriptionServiceRepository.saveAll(toRestore);
+      }
+    }
 
     if (dto.removeServiceCodes != null && !dto.removeServiceCodes.isEmpty()) {
       Set<String> uniqueCodes = Set.copyOf(dto.removeServiceCodes);

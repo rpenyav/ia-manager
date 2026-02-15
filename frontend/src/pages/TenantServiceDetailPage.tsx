@@ -28,7 +28,7 @@ export function TenantServiceDetailPage() {
   const { tenantId, serviceCode } = useParams();
   const navigate = useNavigate();
   const { role, tenantId: authTenantId } = useAuth();
-  const canManageServices = role === "admin" || role === "tenant";
+  const canManageServices = role === "admin";
   const canManageChatUsers = role === "admin" || role === "tenant";
   const canManagePolicies = role === "admin";
   const canManageConversations = role === "admin";
@@ -335,6 +335,9 @@ export function TenantServiceDetailPage() {
     if (!tenantId || !serviceCode) {
       return;
     }
+    if (!canManageServices) {
+      return;
+    }
     if (!serviceConfigDraft.providerId.trim()) {
       emitToast("Selecciona un provider.", "error");
       return;
@@ -368,6 +371,9 @@ export function TenantServiceDetailPage() {
 
   const handleServiceRuntimeTest = async () => {
     if (!tenantId || !serviceCode) {
+      return;
+    }
+    if (!canManageServices) {
       return;
     }
     if (!hasTenantApiKey) {
@@ -429,6 +435,9 @@ export function TenantServiceDetailPage() {
     if (!tenantId || !serviceCode) {
       return;
     }
+    if (!canManageServices) {
+      return;
+    }
     const headers = parseHeaders(serviceEndpointDraft.headers);
     if (headers === undefined) {
       return;
@@ -486,6 +495,9 @@ export function TenantServiceDetailPage() {
   };
 
   const handleEditEndpoint = (endpoint: TenantServiceEndpoint) => {
+    if (!canManageServices) {
+      return;
+    }
     setServiceEndpointDraft({
       id: endpoint.id,
       slug: endpoint.slug,
@@ -503,6 +515,9 @@ export function TenantServiceDetailPage() {
 
   const handleDeleteEndpoint = async (endpoint: TenantServiceEndpoint) => {
     if (!tenantId || !serviceCode) {
+      return;
+    }
+    if (!canManageServices) {
       return;
     }
     const result = await Swal.fire({
@@ -676,6 +691,10 @@ export function TenantServiceDetailPage() {
     if (!tenantId) {
       return;
     }
+    if (!canManageConversations) {
+      emitToast("No tienes permisos para ver mensajes.", "error");
+      return;
+    }
     try {
       setChatBusy(true);
       const messages = await api.listChatMessages(tenantId, conversationId);
@@ -760,156 +779,209 @@ export function TenantServiceDetailPage() {
                   : "hasta que se active."}
               </div>
             )}
-            <div className="row g-3 form-grid-13">
-              <div className="col-12 col-md-4">
-                <label>
-                  Estado operativo
-                  <select
-                    className="form-select"
-                    value={serviceConfigDraft.status}
-                    onChange={(event) =>
-                      setServiceConfigDraft((prev) => ({
-                        ...prev,
-                        status: event.target.value as "active" | "suspended",
-                      }))
-                    }
-                    disabled={!canManageServices}
+            {canManageServices ? (
+              <>
+                <div className="row g-3 form-grid-13">
+                  <div className="col-12 col-md-4">
+                    <label>
+                      Estado operativo
+                      <select
+                        className="form-select"
+                        value={serviceConfigDraft.status}
+                        onChange={(event) =>
+                          setServiceConfigDraft((prev) => ({
+                            ...prev,
+                            status: event.target.value as "active" | "suspended",
+                          }))
+                        }
+                      >
+                        <option value="active">active</option>
+                        <option value="suspended">suspended</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className="col-12">
+                    <label>
+                      URL base de la API
+                      <input
+                        className="form-control"
+                        value={serviceConfigDraft.apiBaseUrl}
+                        onChange={(event) =>
+                          setServiceConfigDraft((prev) => ({
+                            ...prev,
+                            apiBaseUrl: event.target.value,
+                          }))
+                        }
+                        placeholder="https://api.cliente.com"
+                      />
+                    </label>
+                  </div>
+                  <div className="col-12">
+                    <label>
+                      <span className="label-with-tooltip">
+                        Prompt de comportamiento (aplica a todo el servicio)
+                        <InfoTooltip field="serviceSystemPrompt" />
+                      </span>
+                      <textarea
+                        className="form-control"
+                        value={serviceConfigDraft.systemPrompt}
+                        onChange={(event) =>
+                          setServiceConfigDraft((prev) => ({
+                            ...prev,
+                            systemPrompt: event.target.value,
+                          }))
+                        }
+                        rows={20}
+                        placeholder="Define el estilo del asistente, tono y reglas..."
+                      />
+                    </label>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label>
+                      Provider
+                      <select
+                        className="form-select"
+                        value={serviceConfigDraft.providerId}
+                        onChange={(event) =>
+                          setServiceConfigDraft((prev) => ({
+                            ...prev,
+                            providerId: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="" disabled>
+                          Selecciona provider
+                        </option>
+                        {providers.map((provider) => (
+                          <option key={provider.id} value={provider.id}>
+                            {provider.displayName} · {provider.type}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label>
+                      Pricing
+                      <select
+                        className="form-select"
+                        value={serviceConfigDraft.pricingId}
+                        onChange={(event) =>
+                          setServiceConfigDraft((prev) => ({
+                            ...prev,
+                            pricingId: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="" disabled>
+                          Selecciona pricing
+                        </option>
+                        {pricing.map((entry) => (
+                          <option key={entry.id} value={entry.id}>
+                            {entry.providerType} · {entry.model}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <label>
+                      Política
+                      <select
+                        className="form-select"
+                        value={serviceConfigDraft.policyId}
+                        onChange={(event) =>
+                          setServiceConfigDraft((prev) => ({
+                            ...prev,
+                            policyId: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="" disabled>
+                          Selecciona política
+                        </option>
+                        {policyCatalog.map((entry) => (
+                          <option key={entry.id} value={entry.id}>
+                            {entry.id.slice(0, 8)} · {entry.maxRequestsPerMinute}
+                            /min
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                </div>
+                <div className="form-actions">
+                  <button
+                    className="btn primary"
+                    onClick={handleSaveServiceConfig}
+                    disabled={serviceBusy || !canSaveServiceConfig}
                   >
-                    <option value="active">active</option>
-                    <option value="suspended">suspended</option>
-                  </select>
-                </label>
-              </div>
-              <div className="col-12">
-                <label>
-                  URL base de la API
-                  <input
-                    className="form-control"
-                    value={serviceConfigDraft.apiBaseUrl}
-                    onChange={(event) =>
-                      setServiceConfigDraft((prev) => ({
-                        ...prev,
-                        apiBaseUrl: event.target.value,
-                      }))
-                    }
-                    placeholder="https://api.cliente.com"
-                    disabled={!canManageServices}
-                  />
-                </label>
-              </div>
-              <div className="col-12">
-                <label>
-                  <span className="label-with-tooltip">
-                    Prompt de comportamiento (aplica a todo el servicio)
-                    <InfoTooltip field="serviceSystemPrompt" />
-                  </span>
-                  <textarea
-                    className="form-control"
-                    value={serviceConfigDraft.systemPrompt}
-                    onChange={(event) =>
-                      setServiceConfigDraft((prev) => ({
-                        ...prev,
-                        systemPrompt: event.target.value,
-                      }))
-                    }
-                    rows={20}
-                    placeholder="Define el estilo del asistente, tono y reglas..."
-                    disabled={!canManageServices}
-                  />
-                </label>
-              </div>
-              <div className="col-12 col-md-4">
-                <label>
-                  Provider
-                  <select
-                    className="form-select"
-                    value={serviceConfigDraft.providerId}
-                    onChange={(event) =>
-                      setServiceConfigDraft((prev) => ({
-                        ...prev,
-                        providerId: event.target.value,
-                      }))
-                    }
-                    disabled={!canManageServices}
-                  >
-                    <option value="" disabled>
-                      Selecciona provider
-                    </option>
-                    {providers.map((provider) => (
-                      <option key={provider.id} value={provider.id}>
-                        {provider.displayName} · {provider.type}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="col-12 col-md-4">
-                <label>
-                  Pricing
-                  <select
-                    className="form-select"
-                    value={serviceConfigDraft.pricingId}
-                    onChange={(event) =>
-                      setServiceConfigDraft((prev) => ({
-                        ...prev,
-                        pricingId: event.target.value,
-                      }))
-                    }
-                    disabled={!canManageServices}
-                  >
-                    <option value="" disabled>
-                      Selecciona pricing
-                    </option>
-                    {pricing.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.providerType} · {entry.model}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="col-12 col-md-4">
-                <label>
-                  Política
-                  <select
-                    className="form-select"
-                    value={serviceConfigDraft.policyId}
-                    onChange={(event) =>
-                      setServiceConfigDraft((prev) => ({
-                        ...prev,
-                        policyId: event.target.value,
-                      }))
-                    }
-                    disabled={!canManageServices}
-                  >
-                    <option value="" disabled>
-                      Selecciona política
-                    </option>
-                    {policyCatalog.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.id.slice(0, 8)} · {entry.maxRequestsPerMinute}
-                        /min
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-            <div className="form-actions">
-              <button
-                className="btn primary"
-                onClick={handleSaveServiceConfig}
-                disabled={
-                  serviceBusy || !canManageServices || !canSaveServiceConfig
-                }
-              >
-                Guardar configuración
-              </button>
-            </div>
+                    Guardar configuración
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mini-list">
+                  <div className="mini-row">
+                    <span>Estado operativo</span>
+                    <span>{serviceConfigDraft.status}</span>
+                  </div>
+                  <div className="mini-row">
+                    <span>URL base de la API</span>
+                    <span>{serviceConfigDraft.apiBaseUrl || "—"}</span>
+                  </div>
+                  <div className="mini-row">
+                    <span>Provider</span>
+                    <span>
+                      {providers.find(
+                        (provider) => provider.id === serviceConfigDraft.providerId,
+                      )?.displayName || "—"}
+                    </span>
+                  </div>
+                  <div className="mini-row">
+                    <span>Pricing</span>
+                    <span>
+                      {pricing.find(
+                        (entry) => entry.id === serviceConfigDraft.pricingId,
+                      )
+                        ? `${pricing.find(
+                            (entry) => entry.id === serviceConfigDraft.pricingId,
+                          )?.providerType} · ${pricing.find(
+                            (entry) => entry.id === serviceConfigDraft.pricingId,
+                          )?.model}`
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="mini-row">
+                    <span>Política</span>
+                    <span>
+                      {policyCatalog.find(
+                        (entry) => entry.id === serviceConfigDraft.policyId,
+                      )
+                        ? `${serviceConfigDraft.policyId.slice(0, 8)} · ${
+                            policyCatalog.find(
+                              (entry) => entry.id === serviceConfigDraft.policyId,
+                            )?.maxRequestsPerMinute
+                          }/min`
+                        : "—"}
+                    </span>
+                  </div>
+                </div>
+                <div className="code-block">
+                  <pre>{serviceConfigDraft.systemPrompt || "Sin prompt."}</pre>
+                </div>
+              </>
+            )}
 
             <div className="section-divider" />
 
             <h4>Prueba runtime del servicio</h4>
+            {!canManageServices && (
+              <div className="info-banner">
+                Solo administradores pueden ejecutar el runtime del servicio.
+              </div>
+            )}
             {!hasTenantApiKey && (
               <div className="info-banner">
                 Necesitas una API key activa para ejecutar el runtime.
@@ -931,7 +1003,7 @@ export function TenantServiceDetailPage() {
                         providerId: event.target.value,
                       }))
                     }
-                    disabled={!hasTenantApiKey}
+                    disabled={!hasTenantApiKey || !canManageServices}
                   >
                     <option value="">Selecciona provider</option>
                     {providers.map((provider) => (
@@ -955,7 +1027,7 @@ export function TenantServiceDetailPage() {
                       }))
                     }
                     placeholder="gpt-4o-mini"
-                    disabled={!hasTenantApiKey}
+                    disabled={!hasTenantApiKey || !canManageServices}
                   />
                 </label>
               </div>
@@ -973,7 +1045,7 @@ export function TenantServiceDetailPage() {
                     }
                     rows={6}
                     placeholder='{"messages":[{"role":"user","content":"Hola"}]}'
-                    disabled={!hasTenantApiKey}
+                    disabled={!hasTenantApiKey || !canManageServices}
                   />
                 </label>
               </div>
@@ -982,7 +1054,7 @@ export function TenantServiceDetailPage() {
               <button
                 className="btn primary"
                 onClick={handleServiceRuntimeTest}
-                disabled={serviceRuntimeBusy || !hasTenantApiKey}
+                disabled={serviceRuntimeBusy || !hasTenantApiKey || !canManageServices}
               >
                 Ejecutar runtime
               </button>
@@ -1008,6 +1080,11 @@ export function TenantServiceDetailPage() {
                   Es obligatorio crear endpoints para este servicio según su
                   configuración.
                 </p>
+                {!canManageServices && (
+                  <div className="info-banner">
+                    No tienes permisos para gestionar endpoints.
+                  </div>
+                )}
                 <div className="row g-3 form-grid-13">
                   <div className="col-12 col-md-4">
                     <label>
@@ -1022,6 +1099,7 @@ export function TenantServiceDetailPage() {
                           }))
                         }
                         placeholder="send-message"
+                        disabled={!canManageServices}
                       />
                     </label>
                   </div>
@@ -1037,6 +1115,7 @@ export function TenantServiceDetailPage() {
                             method: event.target.value,
                           }))
                         }
+                        disabled={!canManageServices}
                       >
                         {["GET", "POST", "PUT", "PATCH", "DELETE"].map(
                           (method) => (
@@ -1061,6 +1140,7 @@ export function TenantServiceDetailPage() {
                           }))
                         }
                         placeholder="/chat/send"
+                        disabled={!canManageServices}
                       />
                     </label>
                   </div>
@@ -1080,6 +1160,7 @@ export function TenantServiceDetailPage() {
                           }))
                         }
                         placeholder='{ "list": [...] }'
+                        disabled={!canManageServices}
                       />
                     </label>
                   </div>
@@ -1094,6 +1175,7 @@ export function TenantServiceDetailPage() {
                             enabled: event.target.checked,
                           }))
                         }
+                        disabled={!canManageServices}
                       />{" "}
                       Activo
                     </label>
@@ -1111,6 +1193,7 @@ export function TenantServiceDetailPage() {
                           }))
                         }
                         placeholder='{"Authorization": "Bearer ..."}'
+                        disabled={!canManageServices}
                       />
                     </label>
                   </div>
@@ -1122,7 +1205,8 @@ export function TenantServiceDetailPage() {
                     disabled={
                       serviceBusy ||
                       !serviceEndpointDraft.slug.trim() ||
-                      !serviceEndpointDraft.path.trim()
+                      !serviceEndpointDraft.path.trim() ||
+                      !canManageServices
                     }
                   >
                     {serviceEndpointMode === "edit"
@@ -1146,6 +1230,7 @@ export function TenantServiceDetailPage() {
                           enabled: true,
                         });
                       }}
+                      disabled={!canManageServices}
                     >
                       Cancelar edición
                     </button>
@@ -1180,12 +1265,14 @@ export function TenantServiceDetailPage() {
                           <button
                             className="link"
                             onClick={() => handleEditEndpoint(row)}
+                            disabled={!canManageServices}
                           >
                             Editar
                           </button>
                           <button
                             className="link danger"
                             onClick={() => handleDeleteEndpoint(row)}
+                            disabled={!canManageServices}
                           >
                             Eliminar
                           </button>
@@ -1428,34 +1515,36 @@ export function TenantServiceDetailPage() {
                   render: (conversation: ChatConversation) =>
                     new Date(conversation.createdAt).toLocaleString(),
                 },
-                {
-                  key: "actions",
-                  label: "Acciones",
-                  render: (conversation: ChatConversation) => (
-                    <div className="row-actions">
-                      <button
-                        className="link"
-                        onClick={() =>
-                          handleSelectConversation(conversation.id)
-                        }
-                        disabled={chatBusy}
-                      >
-                        Ver mensajes
-                      </button>
-                      {canManageConversations && (
-                        <button
-                          className="link danger"
-                          onClick={() =>
-                            handleDeleteConversation(conversation.id)
-                          }
-                          disabled={chatBusy}
-                        >
-                          Eliminar
-                        </button>
-                      )}
-                    </div>
-                  ),
-                },
+                ...(canManageConversations
+                  ? [
+                      {
+                        key: "actions",
+                        label: "Acciones",
+                        render: (conversation: ChatConversation) => (
+                          <div className="row-actions">
+                            <button
+                              className="link"
+                              onClick={() =>
+                                handleSelectConversation(conversation.id)
+                              }
+                              disabled={chatBusy}
+                            >
+                              Ver mensajes
+                            </button>
+                            <button
+                              className="link danger"
+                              onClick={() =>
+                                handleDeleteConversation(conversation.id)
+                              }
+                              disabled={chatBusy}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        ),
+                      },
+                    ]
+                  : []),
               ]}
               data={chatConversations}
               getRowId={(conversation) => conversation.id}
@@ -1465,8 +1554,8 @@ export function TenantServiceDetailPage() {
             {chatConversations.length === 0 && (
               <div className="muted">Sin conversaciones.</div>
             )}
-            {activeConversationId && (
-              <div className="mini-list">
+            {canManageConversations && activeConversationId && (
+              <div className="mini-list conversation-messages">
                 {chatMessages.map((message) => (
                   <div className="mini-row" key={message.id}>
                     <span className="muted">{message.role}</span>
