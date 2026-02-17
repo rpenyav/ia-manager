@@ -114,6 +114,10 @@ export type DocumentationEntry = {
   category: string;
   title: string;
   content: string;
+  titleEn?: string | null;
+  contentEn?: string | null;
+  titleCa?: string | null;
+  contentCa?: string | null;
   link: string | null;
   orderIndex: number;
   enabled: boolean;
@@ -283,6 +287,7 @@ export type AdminUser = {
   mustChangePassword?: boolean;
   role: 'admin' | 'editor';
   status: 'active' | 'disabled';
+  language?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -294,6 +299,7 @@ export type Profile = {
   email?: string | null;
   status?: string | null;
   mustChangePassword?: boolean;
+  language?: string | null;
 };
 
 export type ChatUserSummary = {

@@ -150,6 +150,8 @@ public class AuthController {
               auth.getTenantId(),
               "status",
               tenant != null ? tenant.getStatus() : null,
+              "language",
+              tenant != null ? tenant.getLanguage() : null,
               "mustChangePassword",
               tenant != null && tenant.isAuthMustChangePassword()));
     }
@@ -167,6 +169,8 @@ public class AuthController {
             profile.getEmail(),
             "status",
             profile.getStatus(),
+            "language",
+            profile.getLanguage(),
             "mustChangePassword",
             profile.isMustChangePassword()));
   }
@@ -193,6 +197,8 @@ public class AuthController {
               "tenant",
               "status",
               tenant != null ? tenant.getStatus() : null,
+              "language",
+              tenant != null ? tenant.getLanguage() : null,
               "mustChangePassword",
               tenant != null && tenant.isAuthMustChangePassword(),
               "createdAt",
@@ -215,6 +221,8 @@ public class AuthController {
             profile.getRole(),
             "status",
             profile.getStatus(),
+            "language",
+            profile.getLanguage(),
             "mustChangePassword",
             profile.isMustChangePassword(),
             "createdAt",
@@ -234,15 +242,18 @@ public class AuthController {
       String name = body.get("name");
       String email = body.get("email");
       String password = body.get("password");
+      String language = body.get("language");
       TenantsService.UpdateTenantSelfRequest dto = new TenantsService.UpdateTenantSelfRequest();
       dto.name = name;
       dto.billingEmail = email;
       dto.authPassword = password;
+      dto.language = language;
       tenantsService.updateSelf(auth.getTenantId(), dto);
       return profile(request);
     }
     AdminUsersService.UpdateProfileRequest dto =
-        new AdminUsersService.UpdateProfileRequest(body.get("name"), body.get("email"), body.get("password"));
+        new AdminUsersService.UpdateProfileRequest(
+            body.get("name"), body.get("email"), body.get("password"), body.get("language"));
     AdminUser updated = adminUsersService.updateProfile(auth.getSub(), dto);
     return ResponseEntity.ok(
         Map.of(

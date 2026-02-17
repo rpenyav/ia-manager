@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../auth";
+import { useI18n } from "../i18n/I18nProvider";
 import type { DocumentationEntry, Tenant } from "../types";
+import { resolveDocTitle } from "../utils/docs";
 
 type Props = {
   onSelectDoc: (entry: DocumentationEntry) => void;
@@ -12,6 +14,7 @@ type Props = {
 export function DocsSearch({ onSelectDoc, onSelectTenant }: Props) {
   const navigate = useNavigate();
   const { role } = useAuth();
+  const { t, language } = useI18n();
   const isTenant = role === "tenant";
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DocumentationEntry[]>([]);
@@ -56,7 +59,7 @@ export function DocsSearch({ onSelectDoc, onSelectTenant }: Props) {
         setOpen(true);
         setError(null);
       } catch (err: any) {
-        setError(err.message || "Error buscando documentación");
+        setError(err.message || t("Error buscando documentación"));
       }
     }, 250);
 
@@ -74,10 +77,12 @@ export function DocsSearch({ onSelectDoc, onSelectTenant }: Props) {
       return error;
     }
     if (!query) {
-      return isTenant ? "Busca documentación" : "Busca documentación o clientes";
+      return isTenant
+        ? t("Busca documentación")
+        : t("Busca documentación o clientes");
     }
     if (results.length === 0 && tenantResults.length === 0) {
-      return "Sin resultados";
+      return t("Sin resultados");
     }
     return "";
   }, [query, results, tenantResults, error, isTenant]);
@@ -99,7 +104,11 @@ export function DocsSearch({ onSelectDoc, onSelectTenant }: Props) {
         <input
           className="docs-search-input"
           type="search"
-          placeholder={isTenant ? "Buscar documentación..." : "Buscar documentación o clientes..."}
+          placeholder={
+            isTenant
+              ? t("Buscar documentación...")
+              : t("Buscar documentación o clientes...")
+          }
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => {
@@ -114,7 +123,7 @@ export function DocsSearch({ onSelectDoc, onSelectTenant }: Props) {
         <div className="docs-search-dropdown">
           {hint && <div className="docs-search-hint">{hint}</div>}
           {tenantResults.length > 0 && (
-            <div className="docs-search-section">Clientes</div>
+            <div className="docs-search-section">{t("Clientes")}</div>
           )}
           {tenantResults.map((tenant) => (
             <button
@@ -132,13 +141,13 @@ export function DocsSearch({ onSelectDoc, onSelectTenant }: Props) {
             >
               <div className="docs-search-title">{tenant.name}</div>
               <div className="docs-search-meta">
-                <span>tenant</span>
+                <span>{t("tenant")}</span>
                 <span>{tenant.id}</span>
               </div>
             </button>
           ))}
           {results.length > 0 && (
-            <div className="docs-search-section">Documentación</div>
+            <div className="docs-search-section">{t("Documentación")}</div>
           )}
           {results.map((entry) => (
             <button
@@ -146,11 +155,16 @@ export function DocsSearch({ onSelectDoc, onSelectTenant }: Props) {
               className="docs-search-item"
               type="button"
               onClick={() => {
-                onSelectDoc(entry);
+                onSelectDoc({
+                  ...entry,
+                  title: resolveDocTitle(entry, language),
+                });
                 setOpen(false);
               }}
             >
-              <div className="docs-search-title">{entry.title}</div>
+              <div className="docs-search-title">
+                {resolveDocTitle(entry, language)}
+              </div>
               <div className="docs-search-meta">
                 <span>{entry.menuSlug}</span>
                 <span>{entry.category}</span>

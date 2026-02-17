@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { isLanguage, setStoredLanguage } from './i18n';
 
 type AuthContextValue = {
   token: string | null;
@@ -181,7 +182,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email?: string | null;
         mustChangePassword?: boolean;
         tenantId?: string | null;
+        language?: string | null;
       };
+      if (data.language && isLanguage(data.language)) {
+        setStoredLanguage(data.language);
+      }
       setToken(storedToken || 'cookie');
       setUser(data.user);
       setName(data.name ?? null);

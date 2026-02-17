@@ -1,3 +1,5 @@
+import { getStoredLanguage, translate } from "./i18n";
+
 const fallbackBaseUrl =
   import.meta.env.MODE === "production"
     ? "https://backend-production-fc6a.up.railway.app"
@@ -11,6 +13,8 @@ const authTokenFallback = import.meta.env.VITE_AUTH_TOKEN || "";
 const AUTH_TOKEN_KEY = "pm_auth_token";
 const refreshClientId = import.meta.env.VITE_AUTH_CLIENT_ID || "";
 const refreshClientSecret = import.meta.env.VITE_AUTH_CLIENT_SECRET || "";
+const t = (key: string, vars?: Record<string, string | number>) =>
+  translate(getStoredLanguage(), key, vars);
 
 const canRefresh = Boolean(refreshClientId && refreshClientSecret);
 let authModalPromise: Promise<void> | null = null;
@@ -71,10 +75,10 @@ const showSessionExpiredModal = async () => {
   authModalPromise = (async () => {
     const Swal = (await import("sweetalert2")).default;
     await Swal.fire({
-      title: "Sesión expirada",
-      text: "Tu sesión ha caducado. Debes iniciar sesión de nuevo.",
+      title: t("Sesión expirada"),
+      text: t("Tu sesión ha caducado. Debes iniciar sesión de nuevo."),
       icon: "warning",
-      confirmButtonText: "Ir al login",
+      confirmButtonText: t("Ir al login"),
       allowOutsideClick: false,
       allowEscapeKey: false,
       backdrop: true,

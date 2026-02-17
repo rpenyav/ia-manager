@@ -3,8 +3,10 @@ import { api } from '../api';
 import type { NotificationChannel } from '../types';
 import { PageWithDocs } from '../components/PageWithDocs';
 import { FieldWithHelp } from '../components/FieldWithHelp';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function NotificationsPage() {
+  const { t } = useI18n();
   const [channels, setChannels] = useState<NotificationChannel[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
@@ -23,11 +25,11 @@ export function NotificationsPage() {
         const list = await api.getNotifications();
         setChannels(list);
       } catch (err: any) {
-        setError(err.message || 'Error cargando canales');
+        setError(err.message || t('Error cargando canales'));
       }
     };
     load();
-  }, []);
+  }, [t]);
 
   const resetChannelForm = () => {
     setEditingChannelId(null);
@@ -55,7 +57,7 @@ export function NotificationsPage() {
       }
       resetChannelForm();
     } catch (err: any) {
-      setError(err.message || 'Error guardando canal');
+      setError(err.message || t('Error guardando canal'));
     }
   };
 
@@ -76,7 +78,7 @@ export function NotificationsPage() {
       const updated = await api.updateNotification(channel.id, { enabled: !channel.enabled });
       setChannels((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     } catch (err: any) {
-      setError(err.message || 'Error actualizando canal');
+      setError(err.message || t('Error actualizando canal'));
     }
   };
 
@@ -84,17 +86,17 @@ export function NotificationsPage() {
     <PageWithDocs slug="notifications">
       <section className="grid">
         <div className="info-banner">
-          Para asignar este recurso a un cliente, ve a su perfil (Resumen del cliente).
+          {t('Para asignar este recurso a un cliente, ve a su perfil (Resumen del cliente).')}
         </div>
         {error && <div className="error-banner">{error}</div>}
 
       <div className="card">
-        <h2>Alertas (Email/Slack)</h2>
-        <p className="muted">Canales de notificación por tenant o global.</p>
+        <h2>{t('Alertas (Email/Slack)')}</h2>
+        <p className="muted">{t('Canales de notificación por tenant o global.')}</p>
         <div className="form-grid">
           <FieldWithHelp help="notificationsTenantId">
             <input
-              placeholder="tenantId (opcional, ej: 7d9f...)"
+              placeholder={t('tenantId (opcional, ej: 7d9f...)')}
               value={channelForm.tenantId}
               onChange={(event) =>
                 setChannelForm({ ...channelForm, tenantId: event.target.value })
@@ -106,20 +108,20 @@ export function NotificationsPage() {
               value={channelForm.type}
               onChange={(event) => setChannelForm({ ...channelForm, type: event.target.value })}
             >
-              <option value="email">Email</option>
+              <option value="email">{t('Email')}</option>
               <option value="slack">Slack</option>
             </select>
           </FieldWithHelp>
           <FieldWithHelp help="notificationsName">
             <input
-              placeholder="name (ej: Alerts Ops)"
+              placeholder={t('name (ej: Alerts Ops)')}
               value={channelForm.name}
               onChange={(event) => setChannelForm({ ...channelForm, name: event.target.value })}
             />
           </FieldWithHelp>
           <FieldWithHelp help="notificationsRecipients">
             <input
-              placeholder="recipients (email, comma) ej: ops@acme.com, it@acme.com"
+              placeholder={t('recipients (email, comma) ej: ops@acme.com, it@acme.com')}
               value={channelForm.recipients}
               onChange={(event) =>
                 setChannelForm({ ...channelForm, recipients: event.target.value })
@@ -128,7 +130,7 @@ export function NotificationsPage() {
           </FieldWithHelp>
           <FieldWithHelp help="notificationsWebhookUrl">
             <input
-              placeholder="slack webhook url (ej: https://hooks.slack.com/services/...)"
+              placeholder={t('slack webhook url (ej: https://hooks.slack.com/services/...)')}
               value={channelForm.webhookUrl}
               onChange={(event) =>
                 setChannelForm({ ...channelForm, webhookUrl: event.target.value })
@@ -144,16 +146,16 @@ export function NotificationsPage() {
                   setChannelForm({ ...channelForm, enabled: event.target.checked })
                 }
               />
-              Habilitado
+              {t('Habilitado')}
             </label>
           </FieldWithHelp>
           <div className="form-actions">
             <button className="btn primary" onClick={handleCreateOrUpdateChannel}>
-              {editingChannelId ? 'Actualizar' : 'Crear'} canal
+              {editingChannelId ? t('Actualizar') : t('Crear')} {t('canal')}
             </button>
             {editingChannelId && (
               <button className="btn" onClick={resetChannelForm}>
-                Cancelar
+                {t('Cancelar')}
               </button>
             )}
           </div>
@@ -162,17 +164,17 @@ export function NotificationsPage() {
           {channels.map((channel) => (
             <div className="mini-row" key={channel.id}>
               <span>{channel.type}</span>
-              <span>{channel.tenantId || 'global'}</span>
+              <span>{channel.tenantId || t('global')}</span>
               <span>{channel.config?.name || '-'}</span>
               <span className={`status ${channel.enabled ? 'active' : 'disabled'}`}>
-                {channel.enabled ? 'active' : 'disabled'}
+                {channel.enabled ? t('active') : t('disabled')}
               </span>
               <div className="row-actions">
                 <button className="link" onClick={() => handleEditChannel(channel)}>
-                  Editar
+                  {t('Editar')}
                 </button>
                 <button className="link" onClick={() => handleToggleChannel(channel)}>
-                  {channel.enabled ? 'Desactivar' : 'Activar'}
+                  {channel.enabled ? t('Desactivar') : t('Activar')}
                 </button>
               </div>
             </div>

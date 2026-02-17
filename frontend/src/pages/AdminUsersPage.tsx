@@ -6,9 +6,11 @@ import { StatusBadgeIcon } from '../components/StatusBadgeIcon';
 import { PageWithDocs } from '../components/PageWithDocs';
 import type { AdminUser } from '../types';
 import Swal from 'sweetalert2';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function AdminUsersPage() {
   const { role, loading, user } = useAuth();
+  const { t } = useI18n();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [createForm, setCreateForm] = useState({
@@ -35,7 +37,7 @@ export function AdminUsersPage() {
       const list = await api.listAdminUsers();
       setUsers(list as AdminUser[]);
     } catch (err: any) {
-      setError(err.message || 'Error cargando usuarios');
+      setError(err.message || t('Error cargando usuarios'));
     }
   };
 
@@ -73,7 +75,7 @@ export function AdminUsersPage() {
       setCreateForm({ username: '', name: '', email: '', password: '', role: 'editor', status: 'active' });
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Error creando usuario');
+      setError(err.message || t('Error creando usuario'));
     } finally {
       setSaving(false);
     }
@@ -97,7 +99,7 @@ export function AdminUsersPage() {
       setEditModalOpen(false);
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Error actualizando usuario');
+      setError(err.message || t('Error actualizando usuario'));
     } finally {
       setSaving(false);
     }
@@ -106,15 +108,15 @@ export function AdminUsersPage() {
   const handleToggleStatus = async (user: AdminUser) => {
     const nextStatus = user.status === 'active' ? 'disabled' : 'active';
     const result = await Swal.fire({
-      title: 'Confirmar acción',
+      title: t('Confirmar acción'),
       text:
         nextStatus === 'disabled'
-          ? `¿Desactivar al usuario ${user.username}?`
-          : `¿Activar al usuario ${user.username}?`,
+          ? t('¿Desactivar al usuario {name}?', { name: user.username })
+          : t('¿Activar al usuario {name}?', { name: user.username }),
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: 'Confirmar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: t('Confirmar'),
+      cancelButtonText: t('Cancelar')
     });
     if (!result.isConfirmed) {
       return;
@@ -125,7 +127,7 @@ export function AdminUsersPage() {
       setUsers((prev) => prev.map((item) => (item.id === user.id ? updated : item)));
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Error actualizando estado');
+      setError(err.message || t('Error actualizando estado'));
     } finally {
       setSaving(false);
     }
@@ -136,12 +138,12 @@ export function AdminUsersPage() {
       return;
     }
     const result = await Swal.fire({
-      title: 'Eliminar usuario',
-      text: `¿Eliminar al usuario ${target.username}?`,
+      title: t('Eliminar usuario'),
+      text: t('¿Eliminar al usuario {name}?', { name: target.username }),
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Eliminar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: t('Eliminar'),
+      cancelButtonText: t('Cancelar')
     });
     if (!result.isConfirmed) {
       return;
@@ -152,7 +154,7 @@ export function AdminUsersPage() {
       setUsers((prev) => prev.filter((item) => item.id !== target.id));
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Error eliminando usuario');
+      setError(err.message || t('Error eliminando usuario'));
     } finally {
       setSaving(false);
     }
@@ -160,36 +162,36 @@ export function AdminUsersPage() {
 
   const columns: DataTableColumn<AdminUser>[] = useMemo(
     () => [
-      { key: 'username', label: 'Usuario', sortable: true },
-      { key: 'name', label: 'Nombre', sortable: true },
-      { key: 'email', label: 'Email', sortable: true },
+      { key: 'username', label: t('Usuario'), sortable: true },
+      { key: 'name', label: t('Nombre'), sortable: true },
+      { key: 'email', label: t('Email'), sortable: true },
       {
         key: 'mustChangePassword',
-        label: 'Cambio password',
+        label: t('Cambio password'),
         sortable: true,
-        render: (row) => (row.mustChangePassword ? 'pendiente' : 'ok')
+        render: (row) => (row.mustChangePassword ? t('pendiente') : t('ok'))
       },
       {
         key: 'role',
-        label: 'Rol',
+        label: t('Rol'),
         sortable: true,
         render: (row) => <span className={`status ${row.role}`}>{row.role}</span>
       },
       {
         key: 'status',
-        label: 'Estado',
+        label: t('Estado'),
         sortable: true,
         render: (row) => <StatusBadgeIcon status={row.status} />
       },
       {
         key: 'actions',
-        label: 'Acciones',
+        label: t('Acciones'),
         render: (row) => (
           <div className="icon-actions">
             <button
               type="button"
               className="icon-button"
-              title="Editar"
+              title={t('Editar')}
               onClick={() => {
                 setSelected(row);
                 setEditModalOpen(true);
@@ -200,7 +202,7 @@ export function AdminUsersPage() {
             <button
               type="button"
               className="icon-button danger"
-              title={row.status === 'active' ? 'Desactivar' : 'Activar'}
+              title={row.status === 'active' ? t('Desactivar') : t('Activar')}
               onClick={() => handleToggleStatus(row)}
               disabled={saving}
             >
@@ -209,7 +211,7 @@ export function AdminUsersPage() {
             <button
               type="button"
               className="icon-button danger"
-              title="Eliminar"
+              title={t('Eliminar')}
               onClick={() => handleDelete(row)}
               disabled={saving || row.username === user}
             >
@@ -219,13 +221,13 @@ export function AdminUsersPage() {
         )
       }
     ],
-    [saving, user]
+    [saving, user, t]
   );
 
   if (loading) {
     return (
       <PageWithDocs slug="settings">
-        <div className="muted">Cargando...</div>
+        <div className="muted">{t('Cargando...')}</div>
       </PageWithDocs>
     );
   }
@@ -233,7 +235,7 @@ export function AdminUsersPage() {
   if (role !== 'admin') {
     return (
       <PageWithDocs slug="settings">
-        <div className="muted">Solo los administradores pueden ver esta página.</div>
+        <div className="muted">{t('Solo los administradores pueden ver esta página.')}</div>
       </PageWithDocs>
     );
   }
@@ -244,10 +246,10 @@ export function AdminUsersPage() {
         {error && <div className="error-banner full-row">{error}</div>}
 
         <div className="card full-row">
-          <h2>Crear usuario</h2>
+          <h2>{t('Crear usuario')}</h2>
           <div className="form-grid">
             <label>
-              Usuario
+              {t('Usuario')}
               <input
                 placeholder="admin-soporte"
                 value={createForm.username}
@@ -257,32 +259,32 @@ export function AdminUsersPage() {
               />
             </label>
             <label>
-              Nombre
+              {t('Nombre')}
               <input
-                placeholder="Soporte"
+                placeholder={t('Soporte')}
                 value={createForm.name}
                 onChange={(event) => setCreateForm({ ...createForm, name: event.target.value })}
               />
             </label>
             <label>
-              Email
+              {t('Email')}
               <input
-                placeholder="soporte@empresa.com"
+                placeholder={t('soporte@empresa.com')}
                 value={createForm.email}
                 onChange={(event) => setCreateForm({ ...createForm, email: event.target.value })}
               />
             </label>
             <label>
-              Contraseña
+              {t('Contraseña')}
               <input
                 type="password"
-                placeholder="mínimo 6 caracteres"
+                placeholder={t('mínimo 6 caracteres')}
                 value={createForm.password}
                 onChange={(event) => setCreateForm({ ...createForm, password: event.target.value })}
               />
             </label>
             <label>
-              Rol
+              {t('Rol')}
               <select
                 value={createForm.role}
                 onChange={(event) => setCreateForm({ ...createForm, role: event.target.value })}
@@ -292,13 +294,13 @@ export function AdminUsersPage() {
               </select>
             </label>
             <label>
-              Estado
+              {t('Estado')}
               <select
                 value={createForm.status}
                 onChange={(event) => setCreateForm({ ...createForm, status: event.target.value })}
               >
-                <option value="active">active</option>
-                <option value="disabled">disabled</option>
+                <option value="active">{t('active')}</option>
+                <option value="disabled">{t('disabled')}</option>
               </select>
             </label>
             <div className="form-actions">
@@ -307,15 +309,15 @@ export function AdminUsersPage() {
                 onClick={handleCreate}
                 disabled={saving || !createForm.username.trim() || !createForm.password}
               >
-                Crear usuario
+                {t('Crear usuario')}
               </button>
             </div>
           </div>
         </div>
 
         <div className="card full-row">
-          <h2>Usuarios admin</h2>
-          <p className="muted">Gestiona los usuarios del backoffice.</p>
+          <h2>{t('Usuarios admin')}</h2>
+          <p className="muted">{t('Gestiona los usuarios del backoffice.')}</p>
           <DataTable
             columns={columns}
             data={users}
@@ -331,31 +333,31 @@ export function AdminUsersPage() {
           <div className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <div className="eyebrow">Editar usuario</div>
+                <div className="eyebrow">{t('Editar usuario')}</div>
                 <h3>{selected.username}</h3>
               </div>
               <button className="btn" onClick={() => setEditModalOpen(false)}>
-                Cerrar
+                {t('Cerrar')}
               </button>
             </div>
             <div className="modal-body">
               <div className="form-grid">
                 <label>
-                  Nombre
+                  {t('Nombre')}
                   <input
                     value={editForm.name}
                     onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
                   />
                 </label>
                 <label>
-                  Email
+                  {t('Email')}
                   <input
                     value={editForm.email}
                     onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
                   />
                 </label>
                 <label>
-                  Rol
+                  {t('Rol')}
                   <select
                     value={editForm.role}
                     onChange={(event) => setEditForm({ ...editForm, role: event.target.value })}
@@ -365,20 +367,20 @@ export function AdminUsersPage() {
                   </select>
                 </label>
                 <label>
-                  Estado
+                  {t('Estado')}
                   <select
                     value={editForm.status}
                     onChange={(event) => setEditForm({ ...editForm, status: event.target.value })}
                   >
-                    <option value="active">active</option>
-                    <option value="disabled">disabled</option>
+                    <option value="active">{t('active')}</option>
+                    <option value="disabled">{t('disabled')}</option>
                   </select>
                 </label>
                 <label>
-                  Reset password
+                  {t('Reset password')}
                   <input
                     type="password"
-                    placeholder="dejar en blanco para no cambiar"
+                    placeholder={t('dejar en blanco para no cambiar')}
                     value={editForm.password}
                     onChange={(event) => setEditForm({ ...editForm, password: event.target.value })}
                   />
@@ -387,7 +389,7 @@ export function AdminUsersPage() {
             </div>
             <div className="modal-actions">
               <button className="btn primary" onClick={handleUpdate} disabled={saving}>
-                Guardar cambios
+                {t('Guardar cambios')}
               </button>
             </div>
           </div>

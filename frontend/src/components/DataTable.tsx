@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useI18n } from "../i18n/I18nProvider";
 
 export type DataTableColumn<T> = {
   key: keyof T | string;
@@ -24,6 +25,7 @@ export function DataTable<T extends Record<string, any>>({
   filterKeys,
   onRowClick,
 }: Props<T>) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -104,7 +106,7 @@ export function DataTable<T extends Record<string, any>>({
             </span>
             <input
               type="search"
-              placeholder="Buscar..."
+              placeholder={t("Buscar...")}
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
@@ -114,7 +116,9 @@ export function DataTable<T extends Record<string, any>>({
             />
           </div>
         )}
-        <div className="muted">{sorted.length} resultados</div>
+        <div className="muted">
+          {t("{count} resultados", { count: sorted.length })}
+        </div>
       </div>
       <table className="table">
         <thead>
@@ -173,7 +177,7 @@ export function DataTable<T extends Record<string, any>>({
         </tbody>
       </table>
       {totalPages > 1 && (
-        <nav aria-label="Page navigation">
+        <nav aria-label={t("Paginación")}>
           <ul className="pagination justify-content-center">
             <li className={`page-item${currentPage === 1 ? " disabled" : ""}`}>
               <button
@@ -182,7 +186,7 @@ export function DataTable<T extends Record<string, any>>({
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
               >
-                Previous
+                {t("Anterior")}
               </button>
             </li>
             {pageNumbers.map((pageNumber) => (
@@ -206,7 +210,7 @@ export function DataTable<T extends Record<string, any>>({
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
               >
-                Next
+                {t("Siguiente")}
               </button>
             </li>
           </ul>

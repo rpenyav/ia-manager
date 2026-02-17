@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
+import { useI18n } from '../i18n/I18nProvider';
 import type { DocumentationEntry } from '../types';
+import { resolveDocEntry } from '../utils/docs';
 
 type Props = {
   slug: string;
@@ -16,6 +18,7 @@ type DocsGroup = {
 
 export function PageWithDocs({ slug, children }: Props) {
   const { role } = useAuth();
+  const { t, language } = useI18n();
   const [entries, setEntries] = useState<DocumentationEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeEntry, setActiveEntry] = useState<DocumentationEntry | null>(null);
@@ -26,15 +29,20 @@ export function PageWithDocs({ slug, children }: Props) {
         const docs = await api.getDocs(slug);
         setEntries(docs);
       } catch (err: any) {
-        setError(err.message || 'Error cargando documentación');
+        setError(err.message || t('Error cargando documentación'));
       }
     };
     load();
   }, [slug]);
 
+  const localizedEntries = useMemo(
+    () => entries.map((entry) => resolveDocEntry(entry, language)),
+    [entries, language],
+  );
+
   const groups = useMemo<DocsGroup[]>(() => {
     const map = new Map<string, DocumentationEntry[]>();
-    entries.forEach((entry) => {
+    localizedEntries.forEach((entry) => {
       const key = entry.category || 'general';
       const list = map.get(key) || [];
       list.push(entry);
@@ -44,7 +52,7 @@ export function PageWithDocs({ slug, children }: Props) {
       category,
       entries: list.sort((a, b) => a.orderIndex - b.orderIndex)
     }));
-  }, [entries]);
+  }, [localizedEntries]);
 
   return (
     <div className="page-with-docs">
@@ -52,18 +60,18 @@ export function PageWithDocs({ slug, children }: Props) {
       <aside className="docs-panel">
         <div className="docs-header">
           <div>
-            <div className="eyebrow">Documentación</div>
-            <h2>Guía rápida</h2>
+            <div className="eyebrow">{t('Documentación')}</div>
+            <h2>{t('Guía rápida')}</h2>
           </div>
           {role === 'admin' && (
             <Link to="/docs" className="btn">
-              Editar
+              {t('Editar')}
             </Link>
           )}
         </div>
         {error && <div className="error-banner">{error}</div>}
         {entries.length === 0 && !error && (
-          <div className="muted">No hay documentación para esta sección.</div>
+          <div className="muted">{t('No hay documentación para esta sección.')}</div>
         )}
         {groups.map((group) => (
           <div key={group.category} className="docs-group">
@@ -77,7 +85,9 @@ export function PageWithDocs({ slug, children }: Props) {
               >
                 <div className="docs-title">{entry.title}</div>
                 <div className="docs-body">{entry.content}</div>
-                {entry.link && <span className="docs-link">Ver referencia</span>}
+                {entry.link && (
+                  <span className="docs-link">{t('Ver referencia')}</span>
+                )}
               </button>
             ))}
           </div>
@@ -96,7 +106,7 @@ export function PageWithDocs({ slug, children }: Props) {
                 <h2>{activeEntry.title}</h2>
               </div>
               <button className="btn" onClick={() => setActiveEntry(null)}>
-                Cerrar
+                {t('Cerrar')}
               </button>
             </div>
             <div className="docs-modal-body">
@@ -108,7 +118,7 @@ export function PageWithDocs({ slug, children }: Props) {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Abrir referencia
+                  {t('Abrir referencia')}
                 </a>
               )}
             </div>

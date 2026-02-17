@@ -1979,6 +1979,45 @@ label input[type="radio"] {
   overflow-y: auto;
 }
 
+.breadcrumbs {
+  margin: 4px 0 10px;
+  font-size: 12px;
+  color: rgba(17, 17, 17, 0.6);
+}
+
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.breadcrumbs li::after {
+  content: "/";
+  margin-left: 8px;
+  color: rgba(17, 17, 17, 0.4);
+}
+
+.breadcrumbs li:last-child::after {
+  content: "";
+  margin: 0;
+}
+
+.breadcrumb-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-current {
+  color: rgba(17, 17, 17, 0.85);
+}
+
 .form-divider {
   grid-column: 1 / -1;
   height: 1px;

@@ -6,9 +6,11 @@ import { PageWithDocs } from "../components/PageWithDocs";
 import type { UsageAlert, UsageEvent, UsageSummary } from "../types";
 import { buildDailyUsage } from "../utils/chartData";
 import { formatUsdWithEur } from "../utils/currency";
+import { useI18n } from "../i18n/I18nProvider";
 
 export function TenantUsagePage() {
   const { tenantId } = useParams();
+  const { t } = useI18n();
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [alerts, setAlerts] = useState<UsageAlert[]>([]);
   const [events, setEvents] = useState<UsageEvent[]>([]);
@@ -35,7 +37,7 @@ export function TenantUsagePage() {
         setError(null);
       } catch (err: any) {
         if (active) {
-          setError(err.message || "Error cargando uso del tenant");
+          setError(err.message || t("Error cargando uso del tenant"));
         }
       } finally {
         if (active) setLoading(false);
@@ -89,7 +91,7 @@ export function TenantUsagePage() {
       ],
       series: [
         {
-          name: "Tokens",
+          name: t("Tokens"),
           type: "line",
           data: dailyUsage.tokens,
           smooth: true,
@@ -97,7 +99,7 @@ export function TenantUsagePage() {
           lineStyle: { color: "#1f6f78", width: 3 },
         },
         {
-          name: "Coste",
+          name: t("Coste"),
           type: "line",
           yAxisIndex: 1,
           data: dailyUsage.cost.map((value) => Number(value.toFixed(2))),
@@ -107,7 +109,7 @@ export function TenantUsagePage() {
         },
       ],
     }),
-    [dailyUsage],
+    [dailyUsage, t],
   );
 
   return (
@@ -116,29 +118,29 @@ export function TenantUsagePage() {
         {error && <div className="error-banner">{error}</div>}
 
         <div className="card">
-          <h2>Uso del tenant</h2>
-          <p className="muted">Consumo detallado del tenant.</p>
-          {loading && <div className="muted">Cargando uso...</div>}
+          <h2>{t("Uso del tenant")}</h2>
+          <p className="muted">{t("Consumo detallado del tenant.")}</p>
+          {loading && <div className="muted">{t("Cargando uso...")}</div>}
           {!loading && (
             <>
               <div className="usage">
                 <div>
                   <div className="metric">{summary?.tokens?.toLocaleString() ?? 0}</div>
-                  <span className="muted">tokens (hoy)</span>
+                  <span className="muted">{t("tokens (hoy)")}</span>
                 </div>
                 <div>
                   <div className="metric">
                     {formatUsdWithEur(summary?.costUsd ?? 0)}
                   </div>
-                  <span className="muted">coste (hoy)</span>
+                  <span className="muted">{t("coste (hoy)")}</span>
                 </div>
                 <div>
                   <div className="metric">{alerts.length}</div>
-                  <span className="muted">alertas activas</span>
+                  <span className="muted">{t("alertas activas")}</span>
                 </div>
               </div>
               <div className="chart-block">
-                <div className="muted">Tendencia últimos 7 días</div>
+                <div className="muted">{t("Tendencia últimos 7 días")}</div>
                 <Chart option={usageOption} height={220} />
               </div>
             </>
@@ -146,27 +148,30 @@ export function TenantUsagePage() {
         </div>
 
         <div className="card">
-          <h2>Balance mensual</h2>
-          <p className="muted">Estimación basada en el consumo del mes actual.</p>
+          <h2>{t("Balance mensual")}</h2>
+          <p className="muted">{t("Estimación basada en el consumo del mes actual.")}</p>
           <div className="usage">
             <div>
               <div className="metric">{formatUsdWithEur(monthlyCost.costToDate)}</div>
-              <span className="muted">gasto hasta hoy</span>
+              <span className="muted">{t("gasto hasta hoy")}</span>
             </div>
             <div>
               <div className="metric">{formatUsdWithEur(monthlyCost.projected)}</div>
               <span className="muted">
-                proyección mensual ({monthlyCost.daysElapsed}/{monthlyCost.daysInMonth} días)
+                {t("proyección mensual ({elapsed}/{total} días)", {
+                  elapsed: monthlyCost.daysElapsed,
+                  total: monthlyCost.daysInMonth,
+                })}
               </span>
             </div>
           </div>
         </div>
 
         <div className="card">
-          <h2>Alertas</h2>
-          <p className="muted">Señales de consumo y seguridad del tenant.</p>
+          <h2>{t("Alertas")}</h2>
+          <p className="muted">{t("Señales de consumo y seguridad del tenant.")}</p>
           <div className="alerts">
-            {alerts.length === 0 && <div className="muted">Sin alertas activas</div>}
+            {alerts.length === 0 && <div className="muted">{t("Sin alertas activas")}</div>}
             {alerts.map((alert, index) => (
               <div className={`alert ${alert.severity}`} key={`${alert.type}-${index}`}>
                 <div>
@@ -187,18 +192,22 @@ export function TenantUsagePage() {
         </div>
 
         <div className="card">
-          <h2>Logs de uso</h2>
-          <p className="muted">Eventos recientes de consumo del tenant.</p>
+          <h2>{t("Logs de uso")}</h2>
+          <p className="muted">{t("Eventos recientes de consumo del tenant.")}</p>
           <div className="mini-list usage-logs-list">
             {events.map((event) => (
               <div className="mini-row usage-logs-row" key={event.id}>
                 <div className="row align-items-center">
                   <div className="col-6">
                     <div>{event.model}</div>
-                    <div className="muted">{event.serviceCode || "general"}</div>
+                    <div className="muted">{event.serviceCode || t("general")}</div>
                   </div>
                   <div className="col-6 text-end">
-                    <div>{event.tokensIn + event.tokensOut} tokens</div>
+                    <div>
+                      {t("{count} tokens", {
+                        count: event.tokensIn + event.tokensOut,
+                      })}
+                    </div>
                     <div className="muted">{formatUsdWithEur(event.costUsd)}</div>
                   </div>
                 </div>
@@ -209,7 +218,7 @@ export function TenantUsagePage() {
                 </div>
               </div>
             ))}
-            {events.length === 0 && <div className="muted">Sin eventos de uso.</div>}
+            {events.length === 0 && <div className="muted">{t("Sin eventos de uso.")}</div>}
           </div>
         </div>
       </section>

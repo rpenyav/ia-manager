@@ -11,6 +11,7 @@ import { useAuth } from "../auth";
 import { emitToast } from "../toast";
 import { copyToClipboard } from "../utils/clipboard";
 import { getTenantApiKey } from "../utils/apiKeyStorage";
+import { useI18n } from "../i18n/I18nProvider";
 import type {
   ApiKeySummary,
   ChatConversation,
@@ -27,6 +28,7 @@ import type {
 export function TenantServiceDetailPage() {
   const { tenantId, serviceCode } = useParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { role, tenantId: authTenantId } = useAuth();
   const canManageServices = role === "admin";
   const canManageChatUsers = role === "admin" || role === "tenant";
@@ -232,7 +234,7 @@ export function TenantServiceDetailPage() {
         const match =
           services.find((item) => item.serviceCode === serviceCode) || null;
         if (!match) {
-          throw new Error("Servicio no encontrado");
+          throw new Error(t("Servicio no encontrado"));
         }
 
         if (!active) {
@@ -317,7 +319,7 @@ export function TenantServiceDetailPage() {
         setError(null);
       } catch (err: any) {
         if (active) {
-          setError(err.message || "Error cargando servicio");
+          setError(err.message || t("Error cargando servicio"));
         }
       } finally {
         if (active) {
@@ -339,15 +341,15 @@ export function TenantServiceDetailPage() {
       return;
     }
     if (!serviceConfigDraft.providerId.trim()) {
-      emitToast("Selecciona un provider.", "error");
+      emitToast(t("Selecciona un provider."), "error");
       return;
     }
     if (!serviceConfigDraft.pricingId.trim()) {
-      emitToast("Selecciona un pricing.", "error");
+      emitToast(t("Selecciona un pricing."), "error");
       return;
     }
     if (!serviceConfigDraft.policyId.trim()) {
-      emitToast("Selecciona una política.", "error");
+      emitToast(t("Selecciona una política."), "error");
       return;
     }
     setServiceBusy(true);
@@ -361,9 +363,9 @@ export function TenantServiceDetailPage() {
         policyId: serviceConfigDraft.policyId,
       });
       await refreshServiceSummary();
-      emitToast("Configuración del servicio guardada.");
+      emitToast(t("Configuración del servicio guardada."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo guardar el servicio", "error");
+      emitToast(err.message || t("No se pudo guardar el servicio"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -378,18 +380,18 @@ export function TenantServiceDetailPage() {
     }
     if (!hasTenantApiKey) {
       setServiceRuntimeError(
-        "Necesitas una API key activa para ejecutar runtime.",
+        t("Necesitas una API key activa para ejecutar runtime."),
       );
       return;
     }
     const providerId =
       serviceConfigDraft.providerId || serviceRuntimeForm.providerId;
     if (!providerId.trim()) {
-      setServiceRuntimeError("Provider es obligatorio.");
+      setServiceRuntimeError(t("Provider es obligatorio."));
       return;
     }
     if (!serviceRuntimeForm.model.trim()) {
-      setServiceRuntimeError("Modelo es obligatorio.");
+      setServiceRuntimeError(t("Modelo es obligatorio."));
       return;
     }
     let payload: Record<string, any> = {};
@@ -398,7 +400,7 @@ export function TenantServiceDetailPage() {
         ? JSON.parse(serviceRuntimeForm.payload)
         : {};
     } catch {
-      setServiceRuntimeError("Payload debe ser JSON válido.");
+      setServiceRuntimeError(t("Payload debe ser JSON válido."));
       return;
     }
     try {
@@ -411,9 +413,9 @@ export function TenantServiceDetailPage() {
         serviceCode,
       });
       setServiceRuntimeResult(result);
-      emitToast("Runtime ejecutado");
+      emitToast(t("Runtime ejecutado"));
     } catch (err: any) {
-      setServiceRuntimeError(err.message || "Error ejecutando runtime");
+      setServiceRuntimeError(err.message || t("Error ejecutando runtime"));
     } finally {
       setServiceRuntimeBusy(false);
     }
@@ -426,7 +428,7 @@ export function TenantServiceDetailPage() {
     try {
       return JSON.parse(value);
     } catch (err) {
-      emitToast("Headers debe ser un JSON válido.", "error");
+      emitToast(t("Headers debe ser un JSON válido."), "error");
       return undefined;
     }
   };
@@ -486,9 +488,9 @@ export function TenantServiceDetailPage() {
         enabled: true,
       });
       setServiceEndpointMode("create");
-      emitToast("Endpoint guardado.");
+      emitToast(t("Endpoint guardado."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo guardar el endpoint", "error");
+      emitToast(err.message || t("No se pudo guardar el endpoint"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -521,12 +523,12 @@ export function TenantServiceDetailPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "¿Eliminar endpoint?",
+      title: t("¿Eliminar endpoint?"),
       text: endpoint.slug,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Eliminar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -537,9 +539,9 @@ export function TenantServiceDetailPage() {
       setServiceEndpoints((prev) =>
         prev.filter((item) => item.id !== endpoint.id),
       );
-      emitToast("Endpoint eliminado.");
+      emitToast(t("Endpoint eliminado."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo eliminar el endpoint", "error");
+      emitToast(err.message || t("No se pudo eliminar el endpoint"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -558,9 +560,9 @@ export function TenantServiceDetailPage() {
       setServiceUsers(users as TenantServiceUser[]);
       setServiceAssignUserId("");
       await refreshServiceSummary();
-      emitToast("Usuario asignado.");
+      emitToast(t("Usuario asignado."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo asignar el usuario", "error");
+      emitToast(err.message || t("No se pudo asignar el usuario"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -570,7 +572,7 @@ export function TenantServiceDetailPage() {
 
   const handleCopyApiKey = async () => {
     if (!resolvedServiceApiKey) {
-      emitToast("API key no disponible.", "error");
+      emitToast(t("API key no disponible."), "error");
       return;
     }
     await copyToClipboard(resolvedServiceApiKey, "API key");
@@ -578,7 +580,7 @@ export function TenantServiceDetailPage() {
 
   const handleCopyServiceId = async () => {
     if (!service?.tenantServiceId) {
-      emitToast("Service ID no disponible.", "error");
+      emitToast(t("Service ID no disponible."), "error");
       return;
     }
     await copyToClipboard(service.tenantServiceId, "Service ID");
@@ -589,16 +591,16 @@ export function TenantServiceDetailPage() {
       return;
     }
     if (!newChatUser.email.trim() || !newChatUser.password.trim()) {
-      emitToast("Email y password son obligatorios.", "error");
+      emitToast(t("Email y password son obligatorios."), "error");
       return;
     }
     const result = await Swal.fire({
-      title: "Crear usuario",
-      text: "¿Crear y asignar este usuario al servicio?",
+      title: t("Crear usuario"),
+      text: t("¿Crear y asignar este usuario al servicio?"),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Confirmar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Confirmar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -619,9 +621,9 @@ export function TenantServiceDetailPage() {
       setServiceAssignUserId("");
       setChatUserModalOpen(false);
       setNewChatUser({ name: "", email: "", password: "" });
-      emitToast("Usuario creado y asignado.");
+      emitToast(t("Usuario creado y asignado."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo crear el usuario", "error");
+      emitToast(err.message || t("No se pudo crear el usuario"), "error");
     } finally {
       setChatUserBusy(false);
     }
@@ -646,9 +648,9 @@ export function TenantServiceDetailPage() {
       );
       const users = await api.listTenantServiceUsers(tenantId, serviceCode);
       setServiceUsers(users as TenantServiceUser[]);
-      emitToast("Usuario actualizado.");
+      emitToast(t("Usuario actualizado."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo actualizar el usuario", "error");
+      emitToast(err.message || t("No se pudo actualizar el usuario"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -659,12 +661,12 @@ export function TenantServiceDetailPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "¿Quitar acceso al servicio?",
+      title: t("¿Quitar acceso al servicio?"),
       text: assignment.user.email,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Quitar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Quitar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -679,9 +681,9 @@ export function TenantServiceDetailPage() {
       const users = await api.listTenantServiceUsers(tenantId, serviceCode);
       setServiceUsers(users as TenantServiceUser[]);
       await refreshServiceSummary();
-      emitToast("Usuario removido.");
+      emitToast(t("Usuario removido."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo quitar el usuario", "error");
+      emitToast(err.message || t("No se pudo quitar el usuario"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -692,7 +694,7 @@ export function TenantServiceDetailPage() {
       return;
     }
     if (!canManageConversations) {
-      emitToast("No tienes permisos para ver mensajes.", "error");
+      emitToast(t("No tienes permisos para ver mensajes."), "error");
       return;
     }
     try {
@@ -701,7 +703,7 @@ export function TenantServiceDetailPage() {
       setChatMessages(messages as ChatMessage[]);
       setActiveConversationId(conversationId);
     } catch (err: any) {
-      setError(err.message || "Error cargando conversación");
+      setError(err.message || t("Error cargando conversación"));
     } finally {
       setChatBusy(false);
     }
@@ -715,12 +717,12 @@ export function TenantServiceDetailPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "Eliminar conversación",
-      text: "¿Eliminar esta conversación?",
+      title: t("Eliminar conversación"),
+      text: t("¿Eliminar esta conversación?"),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Eliminar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -735,9 +737,9 @@ export function TenantServiceDetailPage() {
         setActiveConversationId(null);
         setChatMessages([]);
       }
-      emitToast("Conversación eliminada");
+      emitToast(t("Conversación eliminada"));
     } catch (err: any) {
-      setError(err.message || "Error eliminando conversación");
+      setError(err.message || t("Error eliminando conversación"));
     } finally {
       setChatBusy(false);
     }
@@ -746,7 +748,7 @@ export function TenantServiceDetailPage() {
   if (!tenantId || !serviceCode) {
     return (
       <PageWithDocs slug="tenant-services">
-        <div className="muted">Selecciona un servicio para gestionarlo.</div>
+        <div className="muted">{t("Selecciona un servicio para gestionarlo.")}</div>
       </PageWithDocs>
     );
   }
@@ -757,26 +759,29 @@ export function TenantServiceDetailPage() {
       <div className="card full-width">
         <div className="card-header">
           <div>
-            <div className="eyebrow">Servicio adquirido</div>
+            <div className="eyebrow">{t("Servicio adquirido")}</div>
             <h2>{service?.name || serviceCode}</h2>
             <p className="muted">{service?.description}</p>
           </div>
           <div className="row-actions">
             <Link className="btn" to={`/clients/${tenantId}`}>
-              Volver al tenant
+              {t("Volver al tenant")}
             </Link>
           </div>
         </div>
-        {loading && <LoaderComponent label="Cargando servicio" />}
+        {loading && <LoaderComponent label={t("Cargando servicio")} />}
         {!loading && service && (
           <>
             {service.subscriptionStatus === "pending" && (
               <div className="info-banner">
-                Esta suscripción está pendiente de activación. El servicio no
-                estará operativo{" "}
+                {t(
+                  "Esta suscripción está pendiente de activación. El servicio no estará operativo",
+                )}{" "}
                 {service.activateAt
-                  ? `hasta ${new Date(service.activateAt).toLocaleString()}.`
-                  : "hasta que se active."}
+                  ? t("hasta {date}.", {
+                      date: new Date(service.activateAt).toLocaleString(),
+                    })
+                  : t("hasta que se active.")}
               </div>
             )}
             {canManageServices ? (
@@ -784,7 +789,7 @@ export function TenantServiceDetailPage() {
                 <div className="row g-3 form-grid-13">
                   <div className="col-12 col-md-4">
                     <label>
-                      Estado operativo
+                      {t("Estado operativo")}
                       <select
                         className="form-select"
                         value={serviceConfigDraft.status}
@@ -795,14 +800,14 @@ export function TenantServiceDetailPage() {
                           }))
                         }
                       >
-                        <option value="active">active</option>
-                        <option value="suspended">suspended</option>
+                        <option value="active">{t("Activo")}</option>
+                        <option value="suspended">{t("Suspendido")}</option>
                       </select>
                     </label>
                   </div>
                   <div className="col-12">
                     <label>
-                      URL base de la API
+                      {t("URL base de la API")}
                       <input
                         className="form-control"
                         value={serviceConfigDraft.apiBaseUrl}
@@ -812,14 +817,14 @@ export function TenantServiceDetailPage() {
                             apiBaseUrl: event.target.value,
                           }))
                         }
-                        placeholder="https://api.cliente.com"
+                        placeholder={t("https://api.cliente.com")}
                       />
                     </label>
                   </div>
                   <div className="col-12">
                     <label>
                       <span className="label-with-tooltip">
-                        Prompt de comportamiento (aplica a todo el servicio)
+                        {t("Prompt de comportamiento (aplica a todo el servicio)")}
                         <InfoTooltip field="serviceSystemPrompt" />
                       </span>
                       <textarea
@@ -832,13 +837,13 @@ export function TenantServiceDetailPage() {
                           }))
                         }
                         rows={20}
-                        placeholder="Define el estilo del asistente, tono y reglas..."
+                        placeholder={t("Define el estilo del asistente, tono y reglas...")}
                       />
                     </label>
                   </div>
                   <div className="col-12 col-md-4">
                     <label>
-                      Provider
+                      {t("Provider")}
                       <select
                         className="form-select"
                         value={serviceConfigDraft.providerId}
@@ -850,7 +855,7 @@ export function TenantServiceDetailPage() {
                         }
                       >
                         <option value="" disabled>
-                          Selecciona provider
+                          {t("Selecciona provider")}
                         </option>
                         {providers.map((provider) => (
                           <option key={provider.id} value={provider.id}>
@@ -862,7 +867,7 @@ export function TenantServiceDetailPage() {
                   </div>
                   <div className="col-12 col-md-4">
                     <label>
-                      Pricing
+                      {t("Pricing")}
                       <select
                         className="form-select"
                         value={serviceConfigDraft.pricingId}
@@ -874,7 +879,7 @@ export function TenantServiceDetailPage() {
                         }
                       >
                         <option value="" disabled>
-                          Selecciona pricing
+                          {t("Selecciona pricing")}
                         </option>
                         {pricing.map((entry) => (
                           <option key={entry.id} value={entry.id}>
@@ -886,7 +891,7 @@ export function TenantServiceDetailPage() {
                   </div>
                   <div className="col-12 col-md-4">
                     <label>
-                      Política
+                      {t("Política")}
                       <select
                         className="form-select"
                         value={serviceConfigDraft.policyId}
@@ -898,7 +903,7 @@ export function TenantServiceDetailPage() {
                         }
                       >
                         <option value="" disabled>
-                          Selecciona política
+                          {t("Selecciona política")}
                         </option>
                         {policyCatalog.map((entry) => (
                           <option key={entry.id} value={entry.id}>
@@ -916,7 +921,7 @@ export function TenantServiceDetailPage() {
                     onClick={handleSaveServiceConfig}
                     disabled={serviceBusy || !canSaveServiceConfig}
                   >
-                    Guardar configuración
+                    {t("Guardar configuración")}
                   </button>
                 </div>
               </>
@@ -924,15 +929,15 @@ export function TenantServiceDetailPage() {
               <>
                 <div className="mini-list">
                   <div className="mini-row">
-                    <span>Estado operativo</span>
+                    <span>{t("Estado operativo")}</span>
                     <span>{serviceConfigDraft.status}</span>
                   </div>
                   <div className="mini-row">
-                    <span>URL base de la API</span>
+                    <span>{t("URL base de la API")}</span>
                     <span>{serviceConfigDraft.apiBaseUrl || "—"}</span>
                   </div>
                   <div className="mini-row">
-                    <span>Provider</span>
+                    <span>{t("Provider")}</span>
                     <span>
                       {providers.find(
                         (provider) => provider.id === serviceConfigDraft.providerId,
@@ -940,7 +945,7 @@ export function TenantServiceDetailPage() {
                     </span>
                   </div>
                   <div className="mini-row">
-                    <span>Pricing</span>
+                    <span>{t("Pricing")}</span>
                     <span>
                       {pricing.find(
                         (entry) => entry.id === serviceConfigDraft.pricingId,
@@ -954,7 +959,7 @@ export function TenantServiceDetailPage() {
                     </span>
                   </div>
                   <div className="mini-row">
-                    <span>Política</span>
+                    <span>{t("Política")}</span>
                     <span>
                       {policyCatalog.find(
                         (entry) => entry.id === serviceConfigDraft.policyId,
@@ -969,28 +974,28 @@ export function TenantServiceDetailPage() {
                   </div>
                 </div>
                 <div className="code-block">
-                  <pre>{serviceConfigDraft.systemPrompt || "Sin prompt."}</pre>
+                  <pre>{serviceConfigDraft.systemPrompt || t("Sin prompt.")}</pre>
                 </div>
               </>
             )}
 
             <div className="section-divider" />
 
-            <h4>Prueba runtime del servicio</h4>
+            <h4>{t("Prueba runtime del servicio")}</h4>
             {!canManageServices && (
               <div className="info-banner">
-                Solo administradores pueden ejecutar el runtime del servicio.
+                {t("Solo administradores pueden ejecutar el runtime del servicio.")}
               </div>
             )}
             {!hasTenantApiKey && (
               <div className="info-banner">
-                Necesitas una API key activa para ejecutar el runtime.
+                {t("Necesitas una API key activa para ejecutar el runtime.")}
               </div>
             )}
             <div className="row g-3 form-grid-13">
               <div className="col-12 col-md-4">
                 <label>
-                  Provider
+                  {t("Provider")}
                   <select
                     className="form-select"
                     value={
@@ -1005,7 +1010,7 @@ export function TenantServiceDetailPage() {
                     }
                     disabled={!hasTenantApiKey || !canManageServices}
                   >
-                    <option value="">Selecciona provider</option>
+                    <option value="">{t("Selecciona provider")}</option>
                     {providers.map((provider) => (
                       <option key={provider.id} value={provider.id}>
                         {provider.displayName} · {provider.type}
@@ -1016,7 +1021,7 @@ export function TenantServiceDetailPage() {
               </div>
               <div className="col-12 col-md-4">
                 <label>
-                  Modelo
+                  {t("Modelo")}
                   <input
                     className="form-control"
                     value={serviceRuntimeForm.model}
@@ -1026,14 +1031,14 @@ export function TenantServiceDetailPage() {
                         model: event.target.value,
                       }))
                     }
-                    placeholder="gpt-4o-mini"
+                    placeholder={t("gpt-4o-mini")}
                     disabled={!hasTenantApiKey || !canManageServices}
                   />
                 </label>
               </div>
               <div className="col-12">
                 <label>
-                  Payload JSON
+                  {t("Payload JSON")}
                   <textarea
                     className="form-control"
                     value={serviceRuntimeForm.payload}
@@ -1044,7 +1049,7 @@ export function TenantServiceDetailPage() {
                       }))
                     }
                     rows={6}
-                    placeholder='{"messages":[{"role":"user","content":"Hola"}]}'
+                    placeholder={t('{"messages":[{"role":"user","content":"Hola"}]}')}
                     disabled={!hasTenantApiKey || !canManageServices}
                   />
                 </label>
@@ -1056,10 +1061,10 @@ export function TenantServiceDetailPage() {
                 onClick={handleServiceRuntimeTest}
                 disabled={serviceRuntimeBusy || !hasTenantApiKey || !canManageServices}
               >
-                Ejecutar runtime
+                {t("Ejecutar runtime")}
               </button>
               {serviceRuntimeBusy && (
-                <span className="muted">Ejecutando...</span>
+                <span className="muted">{t("Ejecutando...")}</span>
               )}
             </div>
             {serviceRuntimeError && (
@@ -1075,20 +1080,21 @@ export function TenantServiceDetailPage() {
 
             {service.endpointsEnabled !== false ? (
               <>
-                <h4>Endpoints del servicio</h4>
+                <h4>{t("Endpoints del servicio")}</h4>
                 <p className="muted mb-4">
-                  Es obligatorio crear endpoints para este servicio según su
-                  configuración.
+                  {t(
+                    "Es obligatorio crear endpoints para este servicio según su configuración.",
+                  )}
                 </p>
                 {!canManageServices && (
                   <div className="info-banner">
-                    No tienes permisos para gestionar endpoints.
+                    {t("No tienes permisos para gestionar endpoints.")}
                   </div>
                 )}
                 <div className="row g-3 form-grid-13">
                   <div className="col-12 col-md-4">
                     <label>
-                      Slug
+                      {t("Slug")}
                       <input
                         className="form-control"
                         value={serviceEndpointDraft.slug}
@@ -1098,14 +1104,14 @@ export function TenantServiceDetailPage() {
                             slug: event.target.value,
                           }))
                         }
-                        placeholder="send-message"
+                        placeholder={t("send-message")}
                         disabled={!canManageServices}
                       />
                     </label>
                   </div>
                   <div className="col-12 col-md-4">
                     <label>
-                      Método
+                      {t("Método")}
                       <select
                         className="form-select"
                         value={serviceEndpointDraft.method}
@@ -1129,7 +1135,7 @@ export function TenantServiceDetailPage() {
                   </div>
                   <div className="col-12 col-md-4">
                     <label>
-                      Path
+                      {t("Path")}
                       <input
                         className="form-control"
                         value={serviceEndpointDraft.path}
@@ -1139,7 +1145,7 @@ export function TenantServiceDetailPage() {
                             path: event.target.value,
                           }))
                         }
-                        placeholder="/chat/send"
+                        placeholder={t("/chat/send")}
                         disabled={!canManageServices}
                       />
                     </label>
@@ -1147,7 +1153,7 @@ export function TenantServiceDetailPage() {
                   <div className="col-12 col-md-4">
                     <label>
                       <span className="label-with-tooltip">
-                        Path de extracción (opcional)
+                        {t("Path de extracción (opcional)")}
                         <InfoTooltip field="serviceEndpointResponsePath" />
                       </span>
                       <input
@@ -1159,7 +1165,7 @@ export function TenantServiceDetailPage() {
                             responsePath: event.target.value,
                           }))
                         }
-                        placeholder='{ "list": [...] }'
+                        placeholder={t('{ "list": [...] }')}
                         disabled={!canManageServices}
                       />
                     </label>
@@ -1177,12 +1183,12 @@ export function TenantServiceDetailPage() {
                         }
                         disabled={!canManageServices}
                       />{" "}
-                      Activo
+                      {t("Activo")}
                     </label>
                   </div>
                   <div className="col-12">
                     <label>
-                      Headers JSON (opcional)
+                      {t("Headers JSON (opcional)")}
                       <textarea
                         className="form-control"
                         value={serviceEndpointDraft.headers}
@@ -1192,7 +1198,7 @@ export function TenantServiceDetailPage() {
                             headers: event.target.value,
                           }))
                         }
-                        placeholder='{"Authorization": "Bearer ..."}'
+                        placeholder={t('{"Authorization": "Bearer ..."}')}
                         disabled={!canManageServices}
                       />
                     </label>
@@ -1210,8 +1216,8 @@ export function TenantServiceDetailPage() {
                     }
                   >
                     {serviceEndpointMode === "edit"
-                      ? "Actualizar endpoint"
-                      : "Crear endpoint"}
+                      ? t("Actualizar endpoint")
+                      : t("Crear endpoint")}
                   </button>
 
                   {serviceEndpointMode === "edit" && (
@@ -1232,26 +1238,26 @@ export function TenantServiceDetailPage() {
                       }}
                       disabled={!canManageServices}
                     >
-                      Cancelar edición
+                      {t("Cancelar edición")}
                     </button>
                   )}
                 </div>
                 <hr />
                 <DataTable
                   columns={[
-                    { key: "slug", label: "Slug", sortable: true },
-                    { key: "method", label: "Método", sortable: true },
-                    { key: "path", label: "Path", sortable: true },
+                    { key: "slug", label: t("Slug"), sortable: true },
+                    { key: "method", label: t("Método"), sortable: true },
+                    { key: "path", label: t("Path"), sortable: true },
                     {
                       key: "responsePath",
-                      label: "Path extracción",
+                      label: t("Path extracción"),
                       sortable: true,
                       render: (row: TenantServiceEndpoint) =>
                         row.responsePath || "—",
                     },
                     {
                       key: "enabled",
-                      label: "Estado",
+                      label: t("Estado"),
                       sortable: true,
                       render: (row: TenantServiceEndpoint) => (
                         <StatusBadgeIcon status={row.enabled} />
@@ -1259,7 +1265,7 @@ export function TenantServiceDetailPage() {
                     },
                     {
                       key: "actions",
-                      label: "Acciones",
+                      label: t("Acciones"),
                       render: (row: TenantServiceEndpoint) => (
                         <div className="row-actions">
                           <button
@@ -1267,14 +1273,14 @@ export function TenantServiceDetailPage() {
                             onClick={() => handleEditEndpoint(row)}
                             disabled={!canManageServices}
                           >
-                            Editar
+                            {t("Editar")}
                           </button>
                           <button
                             className="link danger"
                             onClick={() => handleDeleteEndpoint(row)}
                             disabled={!canManageServices}
                           >
-                            Eliminar
+                            {t("Eliminar")}
                           </button>
                         </div>
                       ),
@@ -1286,25 +1292,26 @@ export function TenantServiceDetailPage() {
                   filterKeys={["slug", "method", "path", "responsePath"]}
                 />
                 {serviceEndpoints.length === 0 && (
-                  <div className="muted">Sin endpoints configurados.</div>
+                  <div className="muted">{t("Sin endpoints configurados.")}</div>
                 )}
               </>
             ) : (
               <div className="muted">
-                Este servicio no requiere endpoints configurables.
+                {t("Este servicio no requiere endpoints configurables.")}
               </div>
             )}
 
             <div className="section-divider" />
 
-            <h4>Datos para app de terceros</h4>
+            <h4>{t("Datos para app de terceros")}</h4>
             <p className="muted">
-              Resumen para que el desarrollador configure el chatbot en la app
-              externa.
+              {t(
+                "Resumen para que el desarrollador configure el chatbot en la app externa.",
+              )}
             </p>
             <div className="kv-grid">
               <div className="kv-item">
-                <span className="kv-label">URL de la API</span>
+                <span className="kv-label">{t("URL de la API")}</span>
                 <span className="kv-value">
                   {serviceConfigDraft.apiBaseUrl ||
                     service?.apiBaseUrl ||
@@ -1312,48 +1319,48 @@ export function TenantServiceDetailPage() {
                 </span>
               </div>
               <div className="kv-item">
-                <span className="kv-label">API key</span>
+                <span className="kv-label">{t("API key")}</span>
                 <div className="kv-row">
                   <span className="kv-text">
                     {resolvedServiceApiKey
                       ? resolvedServiceApiKey
                       : activeApiKey
-                        ? "API key activa (no visible)"
-                        : "No disponible"}
+                        ? t("API key activa (no visible)")
+                        : t("No disponible")}
                   </span>
                   <button
                     className="link"
                     onClick={handleCopyApiKey}
                   >
-                    Copiar
+                    {t("Copiar")}
                   </button>
                 </div>
               </div>
               <div className="kv-item">
-                <span className="kv-label">Provider ID</span>
+                <span className="kv-label">{t("Provider ID")}</span>
                 <span className="kv-value">{serviceProviderId || "—"}</span>
               </div>
               <div className="kv-item">
-                <span className="kv-label">Model</span>
+                <span className="kv-label">{t("Model")}</span>
                 <span className="kv-value">{serviceModel || "—"}</span>
               </div>
               <div className="kv-item">
-                <span className="kv-label">Tenant ID</span>
+                <span className="kv-label">{t("Tenant ID")}</span>
                 <span className="kv-value">{tenantId || "—"}</span>
               </div>
               <div className="kv-item">
-                <span className="kv-label">Service ID</span>
+                <span className="kv-label">{t("Service ID")}</span>
                 <div className="kv-row">
                   <span className="kv-text">
                     {service?.tenantServiceId || "—"}
                   </span>
                   <button className="link" onClick={handleCopyServiceId}>
-                    Copiar
+                    {t("Copiar")}
                   </button>
                 </div>
               </div>
               <div className="kv-item">
-                <span className="kv-label">Chat endpoint</span>
+                <span className="kv-label">{t("Chat endpoint")}</span>
                 <span className="kv-value">persisted</span>
               </div>
             </div>
@@ -1361,7 +1368,7 @@ export function TenantServiceDetailPage() {
               serviceEndpoints.length > 0 ? (
                 <div>
                   <div className="muted">
-                    Endpoints configurados (se listan con su método).
+                    {t("Endpoints configurados (se listan con su método).")}
                   </div>
                   <div className="endpoint-list">
                     {serviceEndpoints.map((endpoint) => (
@@ -1376,30 +1383,30 @@ export function TenantServiceDetailPage() {
                 </div>
               ) : (
                 <div className="info-banner">
-                  Este servicio aún no tiene endpoints configurados.
+                  {t("Este servicio aún no tiene endpoints configurados.")}
                 </div>
               )
             ) : (
-              <div className="muted">Este servicio no requiere endpoints.</div>
+              <div className="muted">{t("Este servicio no requiere endpoints.")}</div>
             )}
 
             <div className="section-divider" />
 
             <div className="d-flex align-items-center justify-content-between">
-              <h4>Usuarios asignados</h4>
+              <h4>{t("Usuarios asignados")}</h4>
               {canManageChatUsers && (
                 <button
                   className="btn"
                   onClick={() => setChatUserModalOpen(true)}
                 >
-                  Crear usuario
+                  {t("Crear usuario")}
                 </button>
               )}
             </div>
             <div className="row g-3 form-grid-13">
               <div className="col-12 col-md-4">
                 <label>
-                  Asignar usuario existente
+                  {t("Asignar usuario existente")}
                   <select
                     className="form-select"
                     value={serviceAssignUserId}
@@ -1408,7 +1415,7 @@ export function TenantServiceDetailPage() {
                     }
                     disabled={!canManageChatUsers}
                   >
-                    <option value="">Selecciona un usuario</option>
+                    <option value="">{t("Selecciona un usuario")}</option>
                     {availableServiceUsers.map((user) => (
                       <option key={user.id} value={user.id}>
                         {user.name || user.email}
@@ -1426,7 +1433,7 @@ export function TenantServiceDetailPage() {
                       serviceBusy || !serviceAssignUserId || !canManageChatUsers
                     }
                   >
-                    Asignar
+                    {t("Asignar")}
                   </button>
                 </div>
               </div>
@@ -1436,20 +1443,20 @@ export function TenantServiceDetailPage() {
               columns={[
                 {
                   key: "name",
-                  label: "Usuario",
+                  label: t("Usuario"),
                   sortable: true,
                   render: (row: any) => row.name || row.email,
                 },
-                { key: "email", label: "Email", sortable: true },
+                { key: "email", label: t("Email"), sortable: true },
                 {
                   key: "status",
-                  label: "Estado",
+                  label: t("Estado"),
                   sortable: true,
                   render: (row: any) => <StatusBadgeIcon status={row.status} />,
                 },
                 {
                   key: "actions",
-                  label: "Acciones",
+                  label: t("Acciones"),
                   render: (row: any) => (
                     <div className="row-actions">
                       <button
@@ -1462,14 +1469,16 @@ export function TenantServiceDetailPage() {
                         }
                         disabled={!canManageChatUsers}
                       >
-                        {row.status === "active" ? "Suspender" : "Activar"}
+                        {row.status === "active"
+                          ? t("Suspender")
+                          : t("Activar")}
                       </button>
                       <button
                         className="link danger"
                         onClick={() => handleRemoveServiceUser(row)}
                         disabled={!canManageChatUsers}
                       >
-                        Quitar
+                        {t("Quitar")}
                       </button>
                     </div>
                   ),
@@ -1481,36 +1490,36 @@ export function TenantServiceDetailPage() {
               filterKeys={["name", "email", "status"]}
             />
             {serviceUserRows.length === 0 && (
-              <div className="muted">Sin usuarios asignados.</div>
+              <div className="muted">{t("Sin usuarios asignados.")}</div>
             )}
 
             <div className="section-divider" />
 
-            <h4>Conversaciones del servicio</h4>
+            <h4>{t("Conversaciones del servicio")}</h4>
             <p className="muted mb-4">
-              Histórico de conversaciones asociadas a este servicio.
+              {t("Histórico de conversaciones asociadas a este servicio.")}
             </p>
             <DataTable
               columns={[
                 {
                   key: "title",
-                  label: "Título",
+                  label: t("Título"),
                   sortable: true,
                   render: (conversation: ChatConversation) =>
-                    conversation.title || "Sin título",
+                    conversation.title || t("Sin título"),
                 },
                 {
                   key: "userId",
-                  label: "Usuario",
+                  label: t("Usuario"),
                   sortable: true,
                   render: (conversation: ChatConversation) =>
                     chatUsers.find((user) => user.id === conversation.userId)
                       ?.email || conversation.userId,
                 },
-                { key: "model", label: "Modelo", sortable: true },
+                { key: "model", label: t("Modelo"), sortable: true },
                 {
                   key: "createdAt",
-                  label: "Creado",
+                  label: t("Creado"),
                   sortable: true,
                   render: (conversation: ChatConversation) =>
                     new Date(conversation.createdAt).toLocaleString(),
@@ -1519,7 +1528,7 @@ export function TenantServiceDetailPage() {
                   ? [
                       {
                         key: "actions",
-                        label: "Acciones",
+                        label: t("Acciones"),
                         render: (conversation: ChatConversation) => (
                           <div className="row-actions">
                             <button
@@ -1529,7 +1538,7 @@ export function TenantServiceDetailPage() {
                               }
                               disabled={chatBusy}
                             >
-                              Ver mensajes
+                              {t("Ver mensajes")}
                             </button>
                             <button
                               className="link danger"
@@ -1538,7 +1547,7 @@ export function TenantServiceDetailPage() {
                               }
                               disabled={chatBusy}
                             >
-                              Eliminar
+                              {t("Eliminar")}
                             </button>
                           </div>
                         ),
@@ -1552,7 +1561,7 @@ export function TenantServiceDetailPage() {
               filterKeys={["title", "userId", "model"]}
             />
             {chatConversations.length === 0 && (
-              <div className="muted">Sin conversaciones.</div>
+              <div className="muted">{t("Sin conversaciones.")}</div>
             )}
             {canManageConversations && activeConversationId && (
               <div className="mini-list conversation-messages">
@@ -1564,7 +1573,7 @@ export function TenantServiceDetailPage() {
                   </div>
                 ))}
                 {chatMessages.length === 0 && (
-                  <div className="muted">Sin mensajes.</div>
+                  <div className="muted">{t("Sin mensajes.")}</div>
                 )}
               </div>
             )}
@@ -1582,20 +1591,20 @@ export function TenantServiceDetailPage() {
             <div className="modal-content">
               <div className="modal-header">
                 <div>
-                  <div className="eyebrow">Nuevo usuario</div>
-                  <h3>Crear usuario de chat</h3>
+                  <div className="eyebrow">{t("Nuevo usuario")}</div>
+                  <h3>{t("Crear usuario de chat")}</h3>
                 </div>
                 <button
                   type="button"
                   className="btn-close"
-                  aria-label="Cerrar"
+                  aria-label={t("Cerrar")}
                   onClick={() => setChatUserModalOpen(false)}
                 />
               </div>
               <div className="modal-body">
                 <div className="form-grid">
                   <label>
-                    Nombre
+                    {t("Nombre")}
                     <input
                       value={newChatUser.name}
                       onChange={(event) =>
@@ -1604,11 +1613,11 @@ export function TenantServiceDetailPage() {
                           name: event.target.value,
                         }))
                       }
-                      placeholder="María López"
+                      placeholder={t("María López")}
                     />
                   </label>
                   <label>
-                    Email
+                    {t("Email")}
                     <input
                       value={newChatUser.email}
                       onChange={(event) =>
@@ -1617,11 +1626,11 @@ export function TenantServiceDetailPage() {
                           email: event.target.value,
                         }))
                       }
-                      placeholder="usuario@cliente.com"
+                      placeholder={t("usuario@cliente.com")}
                     />
                   </label>
                   <label>
-                    Password
+                    {t("Password")}
                     <input
                       type="password"
                       value={newChatUser.password}
@@ -1631,7 +1640,7 @@ export function TenantServiceDetailPage() {
                           password: event.target.value,
                         }))
                       }
-                      placeholder="mínimo 6 caracteres"
+                      placeholder={t("mínimo 6 caracteres")}
                     />
                   </label>
                 </div>
@@ -1641,7 +1650,7 @@ export function TenantServiceDetailPage() {
                   className="btn"
                   onClick={() => setChatUserModalOpen(false)}
                 >
-                  Cancelar
+                  {t("Cancelar")}
                 </button>
                 <button
                   className="btn primary"
@@ -1652,7 +1661,7 @@ export function TenantServiceDetailPage() {
                     !newChatUser.password.trim()
                   }
                 >
-                  Crear usuario
+                  {t("Crear usuario")}
                 </button>
               </div>
             </div>

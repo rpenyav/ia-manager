@@ -16,7 +16,10 @@ public interface DocumentationEntryRepository extends JpaRepository<Documentatio
           + "where (:menuSlug is null or d.menuSlug = :menuSlug) "
           + "and (:category is null or d.category = :category) "
           + "and (:enabled is null or d.enabled = :enabled) "
-          + "and (:q is null or d.title like %:q% or d.content like %:q%) "
+          + "and (:q is null "
+          + "or d.title like %:q% or d.content like %:q% "
+          + "or d.titleEn like %:q% or d.contentEn like %:q% "
+          + "or d.titleCa like %:q% or d.contentCa like %:q%) "
           + "order by d.category asc, d.orderIndex asc, d.createdAt asc")
   List<DocumentationEntry> search(
       @Param("menuSlug") String menuSlug,

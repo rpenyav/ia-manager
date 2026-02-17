@@ -5,9 +5,11 @@ import type { Provider } from '../types';
 import { PageWithDocs } from '../components/PageWithDocs';
 import { emitToast } from '../toast';
 import { FieldWithHelp } from '../components/FieldWithHelp';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function ProvidersPage() {
   const { selectedTenantId } = useDashboard();
+  const { t } = useI18n();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -29,11 +31,11 @@ export function ProvidersPage() {
         const providerList = await api.getProviders(selectedTenantId);
         setProviders(providerList);
       } catch (err: any) {
-        setError(err.message || 'Error cargando providers');
+        setError(err.message || t('Error cargando providers'));
       }
     };
     load();
-  }, [selectedTenantId]);
+  }, [selectedTenantId, t]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -57,7 +59,7 @@ export function ProvidersPage() {
         try {
           config = JSON.parse(form.config);
         } catch {
-          throw new Error('Config debe ser JSON válido');
+          throw new Error(t('Config debe ser JSON válido'));
         }
       }
       const payload: any = {
@@ -70,25 +72,25 @@ export function ProvidersPage() {
         try {
           JSON.parse(form.credentials);
         } catch {
-          throw new Error('Credenciales deben ser JSON válido');
+          throw new Error(t('Credenciales deben ser JSON válido'));
         }
         payload.credentials = form.credentials;
       }
       if (editingId) {
         const updated = await api.updateProvider(selectedTenantId, editingId, payload);
         setProviders((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-        emitToast('Provider actualizado');
+        emitToast(t('Provider actualizado'));
       } else {
         if (!form.credentials) {
-          throw new Error('Credenciales requeridas para crear provider');
+          throw new Error(t('Credenciales requeridas para crear provider'));
         }
         const created = await api.createProvider(selectedTenantId, payload);
         setProviders((prev) => [created, ...prev]);
-        emitToast('Provider creado');
+        emitToast(t('Provider creado'));
       }
       resetForm();
     } catch (err: any) {
-      setActionError(err.message || 'Error guardando provider');
+      setActionError(err.message || t('Error guardando provider'));
     }
   };
 
@@ -114,14 +116,14 @@ export function ProvidersPage() {
       });
       setProviders((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     } catch (err: any) {
-      setActionError(err.message || 'Error actualizando provider');
+      setActionError(err.message || t('Error actualizando provider'));
     }
   };
 
   if (!selectedTenantId) {
     return (
       <PageWithDocs slug="providers">
-        <div className="muted">Selecciona un tenant para ver proveedores.</div>
+        <div className="muted">{t('Selecciona un tenant para ver proveedores.')}</div>
       </PageWithDocs>
     );
   }
@@ -130,32 +132,34 @@ export function ProvidersPage() {
     <PageWithDocs slug="providers">
       <section className="grid">
         <div className="info-banner">
-          Para asignar este recurso a un cliente, ve a su perfil (Resumen del cliente).
+          {t('Para asignar este recurso a un cliente, ve a su perfil (Resumen del cliente).')}
         </div>
         {error && <div className="error-banner">{error}</div>}
         {actionError && <div className="error-banner">{actionError}</div>}
 
         <div className="card">
-          <h2>{editingId ? 'Editar provider' : 'Nuevo provider'}</h2>
-          <p className="muted">Registra el proveedor LLM del cliente.</p>
+          <h2>{editingId ? t('Editar provider') : t('Nuevo provider')}</h2>
+          <p className="muted">{t('Registra el proveedor LLM del cliente.')}</p>
           <div className="form-grid">
             <FieldWithHelp help="providersType">
               <input
-                placeholder="type (ej: openai, azure-openai)"
+                placeholder={t('type (ej: openai, azure-openai)')}
                 value={form.type}
                 onChange={(event) => setForm({ ...form, type: event.target.value })}
               />
             </FieldWithHelp>
             <FieldWithHelp help="providersDisplayName">
               <input
-                placeholder="displayName (ej: OpenAI Cliente X)"
+                placeholder={t('displayName (ej: OpenAI Cliente X)')}
                 value={form.displayName}
                 onChange={(event) => setForm({ ...form, displayName: event.target.value })}
               />
             </FieldWithHelp>
             <FieldWithHelp help="providersCredentials">
               <textarea
-                placeholder='credentials JSON (ej: {"apiKey":"sk-...","baseUrl":"https://api.openai.com"})'
+                placeholder={t(
+                  'credentials JSON (ej: {"apiKey":"sk-...","baseUrl":"https://api.openai.com"})',
+                )}
                 value={form.credentials}
                 onChange={(event) => setForm({ ...form, credentials: event.target.value })}
                 rows={4}
@@ -163,7 +167,7 @@ export function ProvidersPage() {
             </FieldWithHelp>
             <FieldWithHelp help="providersConfig">
               <textarea
-                placeholder='config JSON (ej: {})'
+                placeholder={t('config JSON (ej: {})')}
                 value={form.config}
                 onChange={(event) => setForm({ ...form, config: event.target.value })}
                 rows={4}
@@ -176,16 +180,16 @@ export function ProvidersPage() {
                   checked={form.enabled}
                   onChange={(event) => setForm({ ...form, enabled: event.target.checked })}
                 />
-                Habilitado
+                {t('Habilitado')}
               </label>
             </FieldWithHelp>
             <div className="form-actions">
               <button className="btn primary" onClick={handleSubmit}>
-                {editingId ? 'Actualizar' : 'Crear'}
+                {editingId ? t('Actualizar') : t('Crear')}
               </button>
               {editingId && (
                 <button className="btn" onClick={resetForm}>
-                  Cancelar
+                  {t('Cancelar')}
                 </button>
               )}
             </div>
@@ -193,8 +197,8 @@ export function ProvidersPage() {
         </div>
 
         <div className="card">
-          <h2>Providers</h2>
-          <p className="muted">Credenciales cifradas y control de estado.</p>
+          <h2>{t('Providers')}</h2>
+          <p className="muted">{t('Credenciales cifradas y control de estado.')}</p>
           <div className="providers">
             {providers.map((provider) => (
               <div className="provider" key={provider.id}>
@@ -205,21 +209,21 @@ export function ProvidersPage() {
                 <div className="provider-meta">
                   <span>{provider.tenantId}</span>
                   <span className={`status ${provider.enabled ? 'active' : 'disabled'}`}>
-                    {provider.enabled ? 'enabled' : 'disabled'}
+                    {provider.enabled ? t('enabled') : t('disabled')}
                   </span>
                 </div>
                 <div className="row-actions">
                   <button className="link" onClick={() => handleEdit(provider)}>
-                    Editar
+                    {t('Editar')}
                   </button>
                   <button className="link" onClick={() => handleToggle(provider)}>
-                    {provider.enabled ? 'Desactivar' : 'Activar'}
+                    {provider.enabled ? t('Desactivar') : t('Activar')}
                   </button>
                 </div>
               </div>
             ))}
           </div>
-          {providers.length === 0 && <div className="muted">No hay proveedores.</div>}
+          {providers.length === 0 && <div className="muted">{t('No hay proveedores.')}</div>}
         </div>
       </section>
     </PageWithDocs>

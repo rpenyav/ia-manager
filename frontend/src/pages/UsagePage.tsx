@@ -8,12 +8,14 @@ import type { UsageAlert, UsageEvent, UsageSummary } from '../types';
 import { PageWithDocs } from '../components/PageWithDocs';
 import { buildDailyUsage, buildTenantSeries } from '../utils/chartData';
 import { formatUsdWithEur } from '../utils/currency';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function UsagePage() {
   const { role } = useAuth();
   const canNavigate = role === 'admin';
   const { tenants } = useDashboard();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [summaryAll, setSummaryAll] = useState<UsageSummary[]>([]);
   const [alerts, setAlerts] = useState<UsageAlert[]>([]);
   const [events, setEvents] = useState<UsageEvent[]>([]);
@@ -31,11 +33,11 @@ export function UsagePage() {
         setAlerts(usageAlerts);
         setEvents(usageEvents);
       } catch (err: any) {
-        setError(err.message || 'Error cargando uso');
+        setError(err.message || t('Error cargando uso'));
       }
     };
     load();
-  }, []);
+  }, [t]);
 
   const tenantNames = useMemo(
     () => new Map(tenants.map((tenant) => [tenant.id, tenant.name])),
@@ -73,7 +75,7 @@ export function UsagePage() {
       ],
       series: [
         {
-          name: 'Tokens',
+          name: t('Tokens'),
           type: 'line',
           data: dailyUsage.tokens,
           smooth: true,
@@ -81,7 +83,7 @@ export function UsagePage() {
           lineStyle: { color: '#1f6f78', width: 3 }
         },
         {
-          name: 'Coste',
+          name: t('Coste'),
           type: 'line',
           yAxisIndex: 1,
           data: dailyUsage.cost.map((value) => Number(value.toFixed(2))),
@@ -91,7 +93,7 @@ export function UsagePage() {
         }
       ]
     }),
-    [dailyUsage]
+    [dailyUsage, t]
   );
 
   return (
@@ -100,33 +102,33 @@ export function UsagePage() {
         {error && <div className="error-banner">{error}</div>}
 
       <div className="card">
-        <h2>Uso</h2>
-        <p className="muted">Consumo agregado global por tenant (hoy).</p>
+        <h2>{t('Uso')}</h2>
+        <p className="muted">{t('Consumo agregado global por tenant (hoy).')}</p>
         <div className="info-banner">
-          Los límites se definen en Políticas (tokens/coste diario). El pricing sólo calcula
-          costes por modelo. Cuando se supera el límite, el runtime bloquea ejecuciones y
-          puedes activar el kill switch del tenant.
+          {t(
+            'Los límites se definen en Políticas (tokens/coste diario). El pricing sólo calcula costes por modelo. Cuando se supera el límite, el runtime bloquea ejecuciones y puedes activar el kill switch del tenant.',
+          )}
         </div>
         <div className="usage">
           <div>
             <div className="metric">
               {summaryAll.reduce((acc, item) => acc + item.tokens, 0).toLocaleString()}
             </div>
-            <span className="muted">tokens (global)</span>
+            <span className="muted">{t('tokens (global)')}</span>
           </div>
           <div>
             <div className="metric">
               {formatUsdWithEur(summaryAll.reduce((acc, item) => acc + item.costUsd, 0))}
             </div>
-            <span className="muted">coste global</span>
+            <span className="muted">{t('coste global')}</span>
           </div>
           <div>
             <div className="metric">{alerts.length}</div>
-            <span className="muted">alertas</span>
+            <span className="muted">{t('alertas')}</span>
           </div>
         </div>
         <div className="chart-block">
-          <div className="muted">Tendencia últimos 7 días</div>
+          <div className="muted">{t('Tendencia últimos 7 días')}</div>
           <Chart option={usageOption} height={220} />
         </div>
         {summaryAll.length > 0 && (
@@ -134,7 +136,7 @@ export function UsagePage() {
             {summaryAll.map((item) => (
               <div className="mini-row" key={item.tenantId}>
                 <span>{tenantNames.get(item.tenantId) || item.tenantId}</span>
-                <span>{item.tokens} tokens</span>
+                <span>{t('{count} tokens', { count: item.tokens })}</span>
                 <span>{formatUsdWithEur(item.costUsd)}</span>
                 <div className="sparkline-cell">
                   <Sparkline
@@ -151,35 +153,38 @@ export function UsagePage() {
       </div>
 
       <div className="card">
-        <h2>Balance mensual</h2>
+        <h2>{t('Balance mensual')}</h2>
         <p className="muted">
-          Estimación basada en el consumo del mes actual (USD/EUR).
+          {t('Estimación basada en el consumo del mes actual (USD/EUR).')}
         </p>
         <div className="usage">
           <div>
             <div className="metric">{formatUsdWithEur(monthlyCost.costToDate)}</div>
-            <span className="muted">gasto hasta hoy</span>
+            <span className="muted">{t('gasto hasta hoy')}</span>
           </div>
           <div>
             <div className="metric">{formatUsdWithEur(monthlyCost.projected)}</div>
             <span className="muted">
-              proyección mensual ({monthlyCost.daysElapsed}/{monthlyCost.daysInMonth} días)
+              {t('proyección mensual ({elapsed}/{total} días)', {
+                elapsed: monthlyCost.daysElapsed,
+                total: monthlyCost.daysInMonth,
+              })}
             </span>
           </div>
         </div>
       </div>
 
       <div className="card">
-        <h2>Alertas</h2>
-        <p className="muted">Señales de consumo y seguridad (global).</p>
+        <h2>{t('Alertas')}</h2>
+        <p className="muted">{t('Señales de consumo y seguridad (global).')}</p>
         <div className="alerts">
-          {alerts.length === 0 && <div className="muted">Sin alertas activas</div>}
+          {alerts.length === 0 && <div className="muted">{t('Sin alertas activas')}</div>}
           {alerts.map((alert, index) => (
             <div className={`alert ${alert.severity}`} key={`${alert.type}-${index}`}>
               <div>
                 <div className="alert-title">{alert.message}</div>
                 <div className="muted">
-                  Tenant:{' '}
+                  {t('Tenant')}:{" "}
                   {canNavigate ? (
                     <button
                       type="button"
@@ -206,13 +211,13 @@ export function UsagePage() {
           ))}
         </div>
         <div className="muted">
-          Para revisar alertas por tenant, entra en el perfil del cliente.
+          {t('Para revisar alertas por tenant, entra en el perfil del cliente.')}
         </div>
       </div>
 
       <div className="card">
-        <h2>Logs de uso</h2>
-        <p className="muted">Eventos recientes de consumo.</p>
+        <h2>{t('Logs de uso')}</h2>
+        <p className="muted">{t('Eventos recientes de consumo.')}</p>
         <div className="mini-list">
           {events.map((event) => (
             <div className="mini-row" key={event.id}>
@@ -228,12 +233,14 @@ export function UsagePage() {
                 <span>{tenantNames.get(event.tenantId) || event.tenantId}</span>
               )}
               <span>{event.model}</span>
-              <span>{event.tokensIn + event.tokensOut} tokens</span>
+              <span>
+                {t('{count} tokens', { count: event.tokensIn + event.tokensOut })}
+              </span>
               <span>{formatUsdWithEur(event.costUsd)}</span>
             </div>
           ))}
         </div>
-        {events.length === 0 && <div className="muted">Sin eventos.</div>}
+        {events.length === 0 && <div className="muted">{t('Sin eventos.')}</div>}
       </div>
       </section>
     </PageWithDocs>

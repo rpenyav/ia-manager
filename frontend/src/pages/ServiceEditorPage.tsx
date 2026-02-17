@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { PageWithDocs } from "../components/PageWithDocs";
 import { FieldWithHelp } from "../components/FieldWithHelp";
+import { useI18n } from "../i18n/I18nProvider";
 import type { ServiceCatalogItem } from "../types";
 import { emitToast } from "../toast";
 
@@ -13,6 +14,7 @@ const normalizeBool = (value: boolean | undefined | null) =>
 export function ServiceEditorPage() {
   const { serviceId } = useParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const isNew = !serviceId;
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function ServiceEditorPage() {
           (item) => item.id === serviceId,
         );
         if (!match) {
-          throw new Error("Servicio no encontrado");
+          throw new Error(t("Servicio no encontrado"));
         }
         setForm({
           code: match.code || "",
@@ -63,7 +65,7 @@ export function ServiceEditorPage() {
         });
         setError(null);
       } catch (err: any) {
-        setError(err.message || "Error cargando servicio");
+        setError(err.message || t("Error cargando servicio"));
       } finally {
         setLoading(false);
       }
@@ -100,14 +102,14 @@ export function ServiceEditorPage() {
       };
       if (isNew) {
         await api.createServiceCatalog(payload);
-        emitToast("Servicio creado");
+        emitToast(t("Servicio creado"));
         navigate("/services");
       } else if (serviceId) {
         await api.updateServiceCatalog(serviceId, payload);
-        emitToast("Servicio actualizado");
+        emitToast(t("Servicio actualizado"));
       }
     } catch (err: any) {
-      setError(err.message || "Error guardando servicio");
+      setError(err.message || t("Error guardando servicio"));
     } finally {
       setSaving(false);
     }
@@ -116,7 +118,7 @@ export function ServiceEditorPage() {
   if (loading) {
     return (
       <PageWithDocs slug="services">
-        <div className="muted">Cargando servicio...</div>
+        <div className="muted">{t("Cargando servicio...")}</div>
       </PageWithDocs>
     );
   }
@@ -128,42 +130,45 @@ export function ServiceEditorPage() {
         <div className="card">
           <div className="card-header">
             <div>
-              <h2>{isNew ? "Nuevo servicio" : "Editar servicio"}</h2>
+              <h2>{isNew ? t("Nuevo servicio") : t("Editar servicio")}</h2>
               <p className="muted">
-                Configura el servicio que estará disponible para los tenants.
+                {t(
+                  "Configura el servicio que estará disponible para los tenants.",
+                )}
               </p>
             </div>
             <Link className="btn" to="/services">
-              Volver
+              {t("Volver")}
             </Link>
           </div>
           <div className="form-grid">
             <div className="info-banner full-row">
-              Los endpoints se definen cuando el servicio se asigna a un tenant.
-              Aquí solo indicamos si el servicio soporta endpoints.
+              {t(
+                "Los endpoints se definen cuando el servicio se asigna a un tenant. Aquí solo indicamos si el servicio soporta endpoints.",
+              )}
             </div>
             <FieldWithHelp help="serviceCode">
               <div className="field-stack">
                 <input
-                  placeholder="Código único (ej: chatbot-general)"
+                  placeholder={t("Código único (ej: chatbot-general)")}
                   value={form.code}
                   onChange={(event) =>
                     setForm({ ...form, code: event.target.value })
                   }
                 />
                 <span className="muted">
-                  Usa 3-64 caracteres en minúsculas, números o guiones.
+                  {t("Usa 3-64 caracteres en minúsculas, números o guiones.")}
                 </span>
                 {form.code.length > 0 && !codeValid && (
                   <div className="error-banner">
-                    Código inválido. Solo minúsculas, números o guiones.
+                    {t("Código inválido. Solo minúsculas, números o guiones.")}
                   </div>
                 )}
               </div>
             </FieldWithHelp>
             <FieldWithHelp help="serviceName">
               <input
-                placeholder="Nombre del servicio"
+                placeholder={t("Nombre del servicio")}
                 value={form.name}
                 onChange={(event) =>
                   setForm({ ...form, name: event.target.value })
@@ -172,7 +177,7 @@ export function ServiceEditorPage() {
             </FieldWithHelp>
             <FieldWithHelp help="serviceDescription">
               <textarea
-                placeholder="Descripción principal"
+                placeholder={t("Descripción principal")}
                 value={form.description}
                 onChange={(event) =>
                   setForm({ ...form, description: event.target.value })
@@ -182,7 +187,7 @@ export function ServiceEditorPage() {
             </FieldWithHelp>
             <FieldWithHelp help="serviceApiBaseUrl">
               <input
-                placeholder="URL base de la API (opcional)"
+                placeholder={t("URL base de la API (opcional)")}
                 value={form.apiBaseUrl}
                 onChange={(event) =>
                   setForm({ ...form, apiBaseUrl: event.target.value })
@@ -193,7 +198,7 @@ export function ServiceEditorPage() {
               <input
                 type="number"
                 step="0.01"
-                placeholder="Precio mensual EUR"
+                placeholder={t("Precio mensual EUR")}
                 value={form.priceMonthlyEur}
                 onChange={(event) =>
                   setForm({ ...form, priceMonthlyEur: event.target.value })
@@ -204,7 +209,7 @@ export function ServiceEditorPage() {
               <input
                 type="number"
                 step="0.01"
-                placeholder="Precio anual EUR"
+                placeholder={t("Precio anual EUR")}
                 value={form.priceAnnualEur}
                 onChange={(event) =>
                   setForm({ ...form, priceAnnualEur: event.target.value })
@@ -213,7 +218,7 @@ export function ServiceEditorPage() {
             </FieldWithHelp>
             {!pricesValid && (
               <div className="muted">
-                Los precios deben ser números mayores que 0.
+                {t("Los precios deben ser números mayores que 0.")}
               </div>
             )}
             <FieldWithHelp help="serviceEndpointsEnabled">
@@ -228,7 +233,7 @@ export function ServiceEditorPage() {
                     })
                   }
                 />
-                Permite endpoints configurables
+                {t("Permite endpoints configurables")}
               </label>
             </FieldWithHelp>
             <FieldWithHelp help="serviceEnabled">
@@ -240,7 +245,7 @@ export function ServiceEditorPage() {
                     setForm({ ...form, enabled: event.target.checked })
                   }
                 />
-                Habilitado
+                {t("Habilitado")}
               </label>
             </FieldWithHelp>
             <div className="form-actions">
@@ -249,10 +254,10 @@ export function ServiceEditorPage() {
                 onClick={handleSave}
                 disabled={!canSubmit || saving}
               >
-                {saving ? "Guardando..." : "Guardar servicio"}
+                {saving ? t("Guardando...") : t("Guardar servicio")}
               </button>
               <Link className="btn" to="/services">
-                Cancelar
+                {t("Cancelar")}
               </Link>
             </div>
           </div>

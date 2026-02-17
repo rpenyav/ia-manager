@@ -33,6 +33,7 @@ public class AdminUsersService {
       user.setUsername(username);
       user.setRole("admin");
       user.setStatus("active");
+      user.setLanguage("es");
       user.setMustChangePassword(true);
       user.setCreatedAt(LocalDateTime.now());
       user.setUpdatedAt(LocalDateTime.now());
@@ -90,6 +91,7 @@ public class AdminUsersService {
     user.setEmail(dto.email);
     user.setRole(dto.role != null ? dto.role : "editor");
     user.setStatus(dto.status != null ? dto.status : "active");
+    user.setLanguage("es");
     user.setPasswordHash(hashPassword(dto.password));
     user.setMustChangePassword(true);
     user.setCreatedAt(LocalDateTime.now());
@@ -128,6 +130,9 @@ public class AdminUsersService {
     if (dto.email != null) {
       user.setEmail(dto.email);
     }
+    if (dto.language != null && !dto.language.isBlank()) {
+      user.setLanguage(dto.language);
+    }
     if (dto.password != null && !dto.password.isBlank()) {
       user.setPasswordHash(hashPassword(dto.password));
       user.setMustChangePassword(false);
@@ -148,7 +153,7 @@ public class AdminUsersService {
     return hasher.hash(value, salt);
   }
 
-  public record UpdateProfileRequest(String name, String email, String password) {}
+  public record UpdateProfileRequest(String name, String email, String password, String language) {}
 
   public record CreateAdminUserRequest(
       String username, String name, String email, String role, String status, String password) {}
@@ -163,6 +168,7 @@ public class AdminUsersService {
       String email,
       String role,
       String status,
+      String language,
       boolean mustChangePassword,
       LocalDateTime createdAt,
       LocalDateTime updatedAt) {}
@@ -175,6 +181,7 @@ public class AdminUsersService {
         user.getEmail(),
         user.getRole(),
         user.getStatus(),
+        user.getLanguage(),
         user.isMustChangePassword(),
         user.getCreatedAt(),
         user.getUpdatedAt());

@@ -38,6 +38,9 @@ public class AdminUser {
   @Column(nullable = false, length = 16)
   private String status;
 
+  @Column(name = "language", length = 8)
+  private String language;
+
   @Column(name = "createdAt")
   private LocalDateTime createdAt;
 

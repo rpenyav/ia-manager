@@ -32,6 +32,7 @@ public class TenantsService {
     tenant.setStatus(dto.status != null ? dto.status : "active");
     tenant.setKillSwitch(dto.killSwitch != null ? dto.killSwitch : false);
     tenant.setAuthUsername(dto.authUsername);
+    tenant.setLanguage("es");
     if (dto.authPassword != null && !dto.authPassword.isBlank()) {
       tenant.setAuthPasswordHash(tenantAuthService.hashPassword(dto.authPassword));
       tenant.setAuthMustChangePassword(true);
@@ -62,6 +63,9 @@ public class TenantsService {
     if (dto.billingEmail != null) {
       tenant.setBillingEmail(dto.billingEmail);
     }
+    if (dto.language != null) {
+      tenant.setLanguage(dto.language);
+    }
     applyProfileFields(tenant, dto);
     tenant.setUpdatedAt(LocalDateTime.now());
     return repository.save(tenant);
@@ -74,6 +78,9 @@ public class TenantsService {
     }
     if (dto.billingEmail != null) {
       tenant.setBillingEmail(dto.billingEmail);
+    }
+    if (dto.language != null) {
+      tenant.setLanguage(dto.language);
     }
     if (dto.authPassword != null && !dto.authPassword.isBlank()) {
       tenant.setAuthPasswordHash(tenantAuthService.hashPassword(dto.authPassword));
@@ -111,6 +118,7 @@ public class TenantsService {
     if (dto.billingCountry != null) tenant.setBillingCountry(dto.billingCountry);
     if (dto.taxId != null) tenant.setTaxId(dto.taxId);
     if (dto.website != null) tenant.setWebsite(dto.website);
+    if (dto.language != null) tenant.setLanguage(dto.language);
   }
 
   public static class UpdateTenantBase {
@@ -129,6 +137,7 @@ public class TenantsService {
     public String billingCountry;
     public String taxId;
     public String website;
+    public String language;
   }
 
   public static class CreateTenantRequest extends UpdateTenantBase {
@@ -146,11 +155,13 @@ public class TenantsService {
     public String authUsername;
     public String authPassword;
     public String billingEmail;
+    public String language;
   }
 
   public static class UpdateTenantSelfRequest extends UpdateTenantBase {
     public String name;
     public String billingEmail;
     public String authPassword;
+    public String language;
   }
 }

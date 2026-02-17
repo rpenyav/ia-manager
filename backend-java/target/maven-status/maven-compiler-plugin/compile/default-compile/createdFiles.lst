@@ -63,6 +63,7 @@ com/neria/manager/chat/ChatService.class
 com/neria/manager/common/services/EmailService.class
 com/neria/manager/common/entities/ChatConversation.class
 com/neria/manager/subscriptions/BillingController.class
+com/neria/manager/chat/ChatService$ScoredEndpoint.class
 com/neria/manager/chat/ChatAuthController.class
 com/neria/manager/dbconnections/DbConnectionsService$CreateDbConnectionRequest.class
 com/neria/manager/settings/SettingsController.class

@@ -6,10 +6,12 @@ import Swal from 'sweetalert2';
 import { FieldWithHelp } from '../components/FieldWithHelp';
 import { useAuth } from '../auth';
 import { useDashboard } from '../dashboard';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function SettingsPage() {
   const { role } = useAuth();
   const { tenants, refreshTenants } = useDashboard();
+  const { t } = useI18n();
   const [alertSchedule, setAlertSchedule] = useState<AlertSchedule>({
     cron: '*/5 * * * *',
     minIntervalMinutes: 15
@@ -34,11 +36,11 @@ export function SettingsPage() {
         setGlobalKillSwitch(Boolean(killSwitch.enabled));
         setDebugMode(Boolean(debug.enabled));
       } catch (err: any) {
-        setError(err.message || 'Error cargando settings');
+        setError(err.message || t('Error cargando settings'));
       }
     };
     load();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (killSwitchTenantId && tenants.some((tenant) => tenant.id === killSwitchTenantId)) {
@@ -54,7 +56,7 @@ export function SettingsPage() {
       const updated = await api.updateAlertSchedule(alertSchedule);
       setAlertSchedule(updated);
     } catch (err: any) {
-      setError(err.message || 'Error guardando cron');
+      setError(err.message || t('Error guardando cron'));
     }
   };
 
@@ -63,7 +65,7 @@ export function SettingsPage() {
       const updated = await api.setGlobalKillSwitch(enabled);
       setGlobalKillSwitch(Boolean(updated.enabled));
     } catch (err: any) {
-      setError(err.message || 'Error actualizando kill switch');
+      setError(err.message || t('Error actualizando kill switch'));
     }
   };
 
@@ -76,14 +78,14 @@ export function SettingsPage() {
   const handleToggleTenantKillSwitch = async () => {
     const tenant = tenants.find((item) => item.id === killSwitchTenantId);
     if (!tenant) {
-      setError('Selecciona un tenant válido.');
+      setError(t('Selecciona un tenant válido.'));
       return;
     }
     try {
       await api.toggleTenantKillSwitch(tenant.id, !tenant.killSwitch);
       await refreshTenants();
     } catch (err: any) {
-      setError(err.message || 'Error actualizando kill switch del tenant');
+      setError(err.message || t('Error actualizando kill switch del tenant'));
     }
   };
 
@@ -92,18 +94,18 @@ export function SettingsPage() {
       const updated = await api.setDebugMode(!debugMode);
       setDebugMode(Boolean(updated.enabled));
     } catch (err: any) {
-      setError(err.message || 'Error actualizando debug mode');
+      setError(err.message || t('Error actualizando debug mode'));
     }
   };
 
   const handlePurge = async (resources: string[], label: string) => {
     const result = await Swal.fire({
-      title: 'Confirmar eliminación',
-      text: `Eliminar ${label}? Esta acción no se puede deshacer.`,
+      title: t('Confirmar eliminación'),
+      text: t('Eliminar {label}? Esta acción no se puede deshacer.', { label }),
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Eliminar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: t('Eliminar'),
+      cancelButtonText: t('Cancelar')
     });
     if (!result.isConfirmed) {
       return;
@@ -111,7 +113,7 @@ export function SettingsPage() {
     try {
       await api.purgeDebug(resources);
     } catch (err: any) {
-      setError(err.message || 'Error eliminando datos');
+      setError(err.message || t('Error eliminando datos'));
     }
   };
 
@@ -121,9 +123,9 @@ export function SettingsPage() {
         {error && <div className="error-banner full-row">{error}</div>}
 
       <div className="card full-row">
-        <h2>Kill switch por tenant</h2>
+        <h2>{t('Kill switch por tenant')}</h2>
         <p className="muted">
-          El bloqueo se aplica solo al tenant seleccionado. Úsalo para impagos o abuso.
+          {t('El bloqueo se aplica solo al tenant seleccionado. Úsalo para impagos o abuso.')}
         </p>
         <div className="form-grid form-grid-compact">
           <FieldWithHelp help="settingsKillSwitchTenant">
@@ -147,13 +149,13 @@ export function SettingsPage() {
               }`}
             >
               {tenants.find((item) => item.id === killSwitchTenantId)?.killSwitch
-                ? 'ON'
-                : 'OFF'}
+                ? t('ON')
+                : t('OFF')}
             </span>
             <button className="btn danger" onClick={handleToggleTenantKillSwitch}>
               {tenants.find((item) => item.id === killSwitchTenantId)?.killSwitch
-                ? 'Desactivar'
-                : 'Activar'}
+                ? t('Desactivar')
+                : t('Activar')}
             </button>
           </div>
         </div>
@@ -161,13 +163,13 @@ export function SettingsPage() {
 
       {role === 'admin' && (
         <div className="card full-row">
-          <h2>Kill switch global (botón de pánico)</h2>
+          <h2>{t('Kill switch global (botón de pánico)')}</h2>
           <p className="muted">
-            Bloquea todas las ejecuciones de todos los tenants. Solo para incidentes.
+            {t('Bloquea todas las ejecuciones de todos los tenants. Solo para incidentes.')}
           </p>
           <div className="pill-row">
             <span className={`status ${globalKillSwitch ? 'critical' : 'active'}`}>
-              {globalKillSwitch ? 'ON' : 'OFF'}
+              {globalKillSwitch ? t('ON') : t('OFF')}
             </span>
             <button
               className="btn danger"
@@ -177,19 +179,19 @@ export function SettingsPage() {
                   : handleOpenGlobalConfirm(true)
               }
             >
-              {globalKillSwitch ? 'Desactivar' : 'Activar'}
+              {globalKillSwitch ? t('Desactivar') : t('Activar')}
             </button>
           </div>
         </div>
       )}
 
       <div className="card">
-        <h2>Alert Schedule</h2>
-        <p className="muted">Configura el cron y el intervalo mínimo de alertas.</p>
+        <h2>{t('Alert Schedule')}</h2>
+        <p className="muted">{t('Configura el cron y el intervalo mínimo de alertas.')}</p>
         <div className="form-grid">
           <FieldWithHelp help="settingsCron">
             <input
-              placeholder="cron (ej: */5 * * * *)"
+              placeholder={t('cron (ej: */5 * * * *)')}
               value={alertSchedule.cron}
               onChange={(event) =>
                 setAlertSchedule({ ...alertSchedule, cron: event.target.value })
@@ -198,7 +200,7 @@ export function SettingsPage() {
           </FieldWithHelp>
           <FieldWithHelp help="settingsMinIntervalMinutes">
             <input
-              placeholder="min interval (minutes) ej: 15"
+              placeholder={t('min interval (minutes) ej: 15')}
               value={alertSchedule.minIntervalMinutes}
               onChange={(event) =>
                 setAlertSchedule({
@@ -209,14 +211,14 @@ export function SettingsPage() {
             />
           </FieldWithHelp>
           <button className="btn primary" onClick={handleSaveSchedule}>
-            Guardar cron
+            {t('Guardar cron')}
           </button>
         </div>
       </div>
 
       <div className="card">
-        <h2>Debug Mode</h2>
-        <p className="muted">Permite borrar datos en bloque para pruebas.</p>
+        <h2>{t('Debug Mode')}</h2>
+        <p className="muted">{t('Permite borrar datos en bloque para pruebas.')}</p>
         <div className="form-grid">
           <FieldWithHelp help="settingsDebugMode">
             <label className="checkbox">
@@ -225,25 +227,25 @@ export function SettingsPage() {
                 checked={debugMode}
                 onChange={handleToggleDebugMode}
               />
-              Debug mode activo
+              {t('Debug mode activo')}
             </label>
           </FieldWithHelp>
           {debugMode && (
             <div className="form-actions">
-              <button className="btn danger" onClick={() => handlePurge(['providers'], 'todos los providers')}>
-                Eliminar providers
+              <button className="btn danger" onClick={() => handlePurge(['providers'], t('todos los providers'))}>
+                {t('Eliminar providers')}
               </button>
-              <button className="btn danger" onClick={() => handlePurge(['policies'], 'todas las políticas')}>
-                Eliminar políticas
+              <button className="btn danger" onClick={() => handlePurge(['policies'], t('todas las políticas'))}>
+                {t('Eliminar políticas')}
               </button>
-              <button className="btn danger" onClick={() => handlePurge(['api_keys'], 'todas las API keys')}>
-                Eliminar API keys
+              <button className="btn danger" onClick={() => handlePurge(['api_keys'], t('todas las API keys'))}>
+                {t('Eliminar API keys')}
               </button>
-              <button className="btn danger" onClick={() => handlePurge(['tenants'], 'todos los tenants')}>
-                Eliminar tenants
+              <button className="btn danger" onClick={() => handlePurge(['tenants'], t('todos los tenants'))}>
+                {t('Eliminar tenants')}
               </button>
-              <button className="btn danger" onClick={() => handlePurge(['providers','policies','api_keys','tenants'], 'todo el entorno')}>
-                Eliminar TODO
+              <button className="btn danger" onClick={() => handlePurge(['providers','policies','api_keys','tenants'], t('todo el entorno'))}>
+                {t('Eliminar TODO')}
               </button>
             </div>
           )}
@@ -259,36 +261,37 @@ export function SettingsPage() {
           <div className="docs-modal" onClick={(event) => event.stopPropagation()}>
             <div className="docs-modal-header">
               <div>
-                <div className="eyebrow">Confirmación requerida</div>
-                <h2>Activar kill switch global</h2>
+                <div className="eyebrow">{t('Confirmación requerida')}</div>
+                <h2>{t('Activar kill switch global')}</h2>
               </div>
               <button className="btn" onClick={() => setGlobalConfirmOpen(false)}>
-                Cerrar
+                {t('Cerrar')}
               </button>
             </div>
             <div className="docs-modal-body">
               <p className="muted">
-                Esto bloqueará todas las ejecuciones para todos los tenants. Escribe
-                <strong> CONFIRMAR</strong> para continuar.
+                {t(
+                  'Esto bloqueará todas las ejecuciones para todos los tenants. Escribe CONFIRMAR para continuar.',
+                )}
               </p>
               <input
-                placeholder="Escribe CONFIRMAR"
+                placeholder={t('Escribe CONFIRMAR')}
                 value={globalConfirmValue}
                 onChange={(event) => setGlobalConfirmValue(event.target.value)}
               />
               <div className="form-actions" style={{ marginTop: 16 }}>
                 <button
                   className="btn danger"
-                  disabled={globalConfirmValue.trim() !== 'CONFIRMAR'}
+                  disabled={globalConfirmValue.trim() !== t('CONFIRMAR')}
                   onClick={() => {
                     handleSetGlobalKillSwitch(globalConfirmTarget);
                     setGlobalConfirmOpen(false);
                   }}
                 >
-                  Confirmar
+                  {t('Confirmar')}
                 </button>
                 <button className="btn" onClick={() => setGlobalConfirmOpen(false)}>
-                  Cancelar
+                  {t('Cancelar')}
                 </button>
               </div>
             </div>

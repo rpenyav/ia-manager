@@ -29,6 +29,18 @@ public class DocumentationEntry {
   @Column(columnDefinition = "text", nullable = false)
   private String content;
 
+  @Column(name = "title_en", length = 160)
+  private String titleEn;
+
+  @Column(name = "content_en", columnDefinition = "text")
+  private String contentEn;
+
+  @Column(name = "title_ca", length = 160)
+  private String titleCa;
+
+  @Column(name = "content_ca", columnDefinition = "text")
+  private String contentCa;
+
   @Column(length = 255)
   private String link;
 

@@ -3,9 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import { api } from "../api";
 import LogoNeria from "../adapters/ui/react/components/icons/LogoNeria";
+import { useI18n } from "../i18n/I18nProvider";
 
 export function LoginPage() {
   const { login, isAuthenticated } = useAuth();
+  const { t, language } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const query = useMemo(
@@ -28,7 +30,9 @@ export function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetDone, setResetDone] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
-  const todayLabel = new Date().toLocaleDateString("es-ES", {
+  const locale =
+    language === "en" ? "en-US" : language === "ca" ? "ca-ES" : "es-ES";
+  const todayLabel = new Date().toLocaleDateString(locale, {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -42,7 +46,7 @@ export function LoginPage() {
       await login(clientId.trim(), clientSecret.trim());
       navigate("/", { replace: true });
     } catch (err: any) {
-      setError(err.message || "No se pudo iniciar sesión");
+      setError(err.message || t("No se pudo iniciar sesión"));
     } finally {
       setLoading(false);
     }
@@ -74,7 +78,7 @@ export function LoginPage() {
       await api.forgotPassword(resetIdentifier.trim());
       setResetDone(true);
     } catch (err: any) {
-      setResetError(err.message || "No se pudo enviar el email");
+      setResetError(err.message || t("No se pudo enviar el email"));
     } finally {
       setResetLoading(false);
     }
@@ -85,13 +89,13 @@ export function LoginPage() {
       setResetLoading(true);
       setResetError(null);
       if (!resetPassword.trim() || resetPassword !== resetConfirm) {
-        throw new Error("Las contraseñas no coinciden");
+        throw new Error(t("Las contraseñas no coinciden"));
       }
       await api.resetPassword({ token, password: resetPassword });
       setResetDone(true);
       setTimeout(() => navigate("/login"), 800);
     } catch (err: any) {
-      setResetError(err.message || "No se pudo restablecer la contraseña");
+      setResetError(err.message || t("No se pudo restablecer la contraseña"));
     } finally {
       setResetLoading(false);
     }
@@ -106,7 +110,7 @@ export function LoginPage() {
               <LogoNeria color="#000" size={42} />
               <div>
                 <div className="auth-brand-name">Neria Manager</div>
-                <div className="auth-brand-sub">AI Provider Control</div>
+                <div className="auth-brand-sub">{t("Control de proveedores IA")}</div>
               </div>
             </div>
           </div>
@@ -123,7 +127,7 @@ export function LoginPage() {
                   <LogoNeria color="#000" size={150} />
                 </div>
                 <div className="col-12 col-md-10 auth-hero-col-text ps-4">
-                  <h1>IA Manager Control.</h1>
+                  <h1>{t("Control IA Manager.")}</h1>
                 </div>
               </div>
               <p></p>
@@ -149,21 +153,19 @@ export function LoginPage() {
                       onSubmit={handleSubmit}
                     >
                       <div className="auth-card-header">
-                        <div className="eyebrow">Acceso seguro</div>
-                        <h2>Iniciar sesión</h2>
-                        <p className="muted">
-                          Panel de control en primer plano.
-                        </p>
+                        <div className="eyebrow">{t("Acceso seguro")}</div>
+                        <h2>{t("Iniciar sesión")}</h2>
+                        <p className="muted">{t("Panel de control en primer plano.")}</p>
                       </div>
                       <div className="form-grid">
                         <input
-                          placeholder="usuario o email (ej: admin)"
+                          placeholder={t("usuario o email (ej: admin)")}
                           value={clientId}
                           onChange={(event) => setClientId(event.target.value)}
                           required
                         />
                         <input
-                          placeholder="contraseña"
+                          placeholder={t("contraseña")}
                           type="password"
                           value={clientSecret}
                           onChange={(event) =>
@@ -178,7 +180,7 @@ export function LoginPage() {
                         type="submit"
                         disabled={loading}
                       >
-                        {loading ? "Validando…" : "Entrar"}
+                        {loading ? t("Validando…") : t("Entrar")}
                       </button>
                       <button
                         className="btn"
@@ -189,28 +191,28 @@ export function LoginPage() {
                           setTimeout(() => navigate("/reset-password"), 350);
                         }}
                       >
-                        ¿Olvidaste tu contraseña?
+                        {t("¿Olvidaste tu contraseña?")}
                       </button>
                     </form>
                   </div>
                   <div className="auth-card-panel">
                     <div className="auth-card-panel-inner">
                       <div className="auth-card-header">
-                        <div className="eyebrow">Recuperación</div>
+                        <div className="eyebrow">{t("Recuperación")}</div>
                         <h2>
-                          {token ? "Nueva contraseña" : "Recuperar contraseña"}
+                          {token ? t("Nueva contraseña") : t("Recuperar contraseña")}
                         </h2>
                         <p className="muted">
                           {token
-                            ? "Define una nueva contraseña."
-                            : "Introduce tu usuario o email y te enviaremos un enlace."}
+                            ? t("Define una nueva contraseña.")
+                            : t("Introduce tu usuario o email y te enviaremos un enlace.")}
                         </p>
                       </div>
 
                       {!token && !resetDone && (
                         <div className="form-grid">
                           <input
-                            placeholder="usuario o email"
+                            placeholder={t("usuario o email")}
                             value={resetIdentifier}
                             onChange={(event) =>
                               setResetIdentifier(event.target.value)
@@ -222,7 +224,7 @@ export function LoginPage() {
                             disabled={resetLoading}
                             type="button"
                           >
-                            {resetLoading ? "Enviando…" : "Enviar enlace"}
+                            {resetLoading ? t("Enviando…") : t("Enviar enlace")}
                           </button>
                         </div>
                       )}
@@ -231,7 +233,7 @@ export function LoginPage() {
                         <div className="form-grid">
                           <input
                             type="password"
-                            placeholder="Nueva contraseña"
+                            placeholder={t("Nueva contraseña")}
                             value={resetPassword}
                             onChange={(event) =>
                               setResetPassword(event.target.value)
@@ -239,7 +241,7 @@ export function LoginPage() {
                           />
                           <input
                             type="password"
-                            placeholder="Confirmar contraseña"
+                            placeholder={t("Confirmar contraseña")}
                             value={resetConfirm}
                             onChange={(event) =>
                               setResetConfirm(event.target.value)
@@ -252,23 +254,23 @@ export function LoginPage() {
                             type="button"
                           >
                             {resetLoading
-                              ? "Guardando…"
-                              : "Actualizar contraseña"}
+                              ? t("Guardando…")
+                              : t("Actualizar contraseña")}
                           </button>
                         </div>
                       )}
 
                       {resetDone && !token && (
                         <div className="info-banner">
-                          Si el usuario existe, hemos enviado un email con el
-                          enlace de recuperación. En desarrollo, revisa los logs
-                          del backend (Ethereal).
+                          {t(
+                            "Si el usuario existe, hemos enviado un email con el enlace de recuperación. En desarrollo, revisa los logs del backend (Ethereal).",
+                          )}
                         </div>
                       )}
 
                       {resetDone && token && (
                         <div className="info-banner">
-                          Contraseña actualizada. Redirigiendo al login…
+                          {t("Contraseña actualizada. Redirigiendo al login…")}
                         </div>
                       )}
 
@@ -284,7 +286,7 @@ export function LoginPage() {
                           setTimeout(() => navigate("/login"), 350);
                         }}
                       >
-                        Volver al login
+                        {t("Volver al login")}
                       </button>
                     </div>
                   </div>
@@ -376,7 +378,7 @@ export function LoginPage() {
               type="button"
               onClick={() => setPrivacyOpen(true)}
             >
-              Política de privacidad
+              {t("Política de privacidad")}
             </button>
             <div>
               Icons made from{" "}
@@ -392,20 +394,21 @@ export function LoginPage() {
         <div className="modal-backdrop" onClick={() => setPrivacyOpen(false)}>
           <div className="modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <h3>Política de privacidad</h3>
+              <h3>{t("Política de privacidad")}</h3>
               <button className="btn" onClick={() => setPrivacyOpen(false)}>
-                Cerrar
+                {t("Cerrar")}
               </button>
             </div>
             <div className="modal-body">
               <p>
-                Este portal procesa únicamente los datos necesarios para operar
-                el servicio, aplicar límites y mantener auditoría. No se
-                almacenan prompts completos ni respuestas sensibles.
+                {t(
+                  "Este portal procesa únicamente los datos necesarios para operar el servicio, aplicar límites y mantener auditoría. No se almacenan prompts completos ni respuestas sensibles.",
+                )}
               </p>
               <p>
-                Puedes solicitar la rectificación o eliminación de tus datos
-                contactando con el administrador del servicio.
+                {t(
+                  "Puedes solicitar la rectificación o eliminación de tus datos contactando con el administrador del servicio.",
+                )}
               </p>
             </div>
           </div>

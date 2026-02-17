@@ -83,6 +83,9 @@ public class Tenant {
   @Column(name = "website", length = 180)
   private String website;
 
+  @Column(name = "language", length = 8)
+  private String language;
+
   @Column(name = "createdAt")
   private LocalDateTime createdAt;
 

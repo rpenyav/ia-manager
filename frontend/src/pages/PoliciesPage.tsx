@@ -8,10 +8,12 @@ import { useAuth } from '../auth';
 import type { Policy } from '../types';
 import { formatUsdWithEur } from '../utils/currency';
 import Swal from 'sweetalert2';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function PoliciesPage() {
   const { role } = useAuth();
   const { tenants, selectedTenantId, setSelectedTenantId } = useDashboard();
+  const { t } = useI18n();
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -52,11 +54,11 @@ export function PoliciesPage() {
           setPolicy(null);
         }
       } catch (err: any) {
-        setError(err.message || 'Error cargando política');
+        setError(err.message || t('Error cargando política'));
       }
     };
     load();
-  }, [selectedTenantId]);
+  }, [selectedTenantId, t]);
 
   useEffect(() => {
     if (role !== 'admin') {
@@ -70,13 +72,13 @@ export function PoliciesPage() {
         setPolicies(list);
         setListError(null);
       } catch (err: any) {
-        setListError(err.message || 'Error cargando políticas');
+        setListError(err.message || t('Error cargando políticas'));
       } finally {
         setListLoading(false);
       }
     };
     loadPolicies();
-  }, [role]);
+  }, [role, t]);
 
   const handleSave = async () => {
     if (!selectedTenantId) {
@@ -101,19 +103,19 @@ export function PoliciesPage() {
         setPolicies(list);
       }
     } catch (err: any) {
-      setError(err.message || 'Error guardando política');
+      setError(err.message || t('Error guardando política'));
     }
   };
 
   const handleDelete = async (tenantId: string) => {
     const tenantName = tenantNameMap.get(tenantId) || tenantId;
     const result = await Swal.fire({
-      title: 'Eliminar política',
-      text: `¿Seguro que quieres eliminar la política de ${tenantName}?`,
+      title: t('Eliminar política'),
+      text: t('¿Seguro que quieres eliminar la política de {name}?', { name: tenantName }),
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Eliminar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: t('Eliminar'),
+      cancelButtonText: t('Cancelar')
     });
     if (!result.isConfirmed) {
       return;
@@ -126,15 +128,15 @@ export function PoliciesPage() {
         setPolicy(null);
       }
       await Swal.fire({
-        title: 'Política eliminada',
+        title: t('Política eliminada'),
         icon: 'success',
         timer: 1600,
         showConfirmButton: false
       });
     } catch (err: any) {
       await Swal.fire({
-        title: 'Error',
-        text: err.message || 'No se pudo eliminar la política.',
+        title: t('Error'),
+        text: err.message || t('No se pudo eliminar la política.'),
         icon: 'error'
       });
     }
@@ -143,7 +145,7 @@ export function PoliciesPage() {
   if (!selectedTenantId) {
     return (
       <PageWithDocs slug="policies">
-        <div className="muted">Selecciona un tenant para configurar políticas.</div>
+        <div className="muted">{t('Selecciona un tenant para configurar políticas.')}</div>
       </PageWithDocs>
     );
   }
@@ -152,7 +154,7 @@ export function PoliciesPage() {
     <PageWithDocs slug="policies">
       <section className="grid">
         <div className="info-banner">
-          Para asignar este recurso a un cliente, ve a su perfil (Resumen del cliente).
+          {t('Para asignar este recurso a un cliente, ve a su perfil (Resumen del cliente).')}
         </div>
         {error && <div className="error-banner">{error}</div>}
         {listError && <div className="error-banner">{listError}</div>}
@@ -161,31 +163,31 @@ export function PoliciesPage() {
           <div className="card full-row">
             <div className="card-header">
               <div>
-                <h2>Políticas creadas</h2>
-                <p className="muted">Listado global de políticas por tenant.</p>
+                <h2>{t('Políticas creadas')}</h2>
+                <p className="muted">{t('Listado global de políticas por tenant.')}</p>
               </div>
             </div>
             <DataTable
               columns={[
                 {
                   key: 'tenantId',
-                  label: 'Tenant',
+                  label: t('Tenant'),
                   sortable: true,
                   render: (row: Policy) => tenantNameMap.get(row.tenantId) || row.tenantId
                 },
                 {
                   key: 'maxRequestsPerMinute',
-                  label: 'RPM',
+                  label: t('RPM'),
                   sortable: true
                 },
                 {
                   key: 'maxTokensPerDay',
-                  label: 'Tokens/día',
+                  label: t('Tokens/día'),
                   sortable: true
                 },
                 {
                   key: 'maxCostPerDayUsd',
-                  label: 'Coste/día',
+                  label: t('Coste/día'),
                   sortable: true,
                   render: (row: Policy) =>
                     `${Number(row.maxCostPerDayUsd).toFixed(2)} USD · ${formatUsdWithEur(
@@ -194,32 +196,32 @@ export function PoliciesPage() {
                 },
                 {
                   key: 'redactionEnabled',
-                  label: 'Redacción',
+                  label: t('Redacción'),
                   sortable: true,
-                  render: (row: Policy) => (row.redactionEnabled ? 'ON' : 'OFF')
+                  render: (row: Policy) => (row.redactionEnabled ? t('ON') : t('OFF'))
                 },
                 {
                   key: 'updatedAt',
-                  label: 'Actualizado',
+                  label: t('Actualizado'),
                   sortable: true,
                   render: (row: Policy) => new Date(row.updatedAt).toLocaleString()
                 },
                 {
                   key: 'actions',
-                  label: 'Acciones',
+                  label: t('Acciones'),
                   render: (row: Policy) => (
                     <div className="row-actions">
                       <button
                         className="link"
                         onClick={() => setSelectedTenantId(row.tenantId)}
                       >
-                        Editar
+                        {t('Editar')}
                       </button>
                       <button
                         className="link danger"
                         onClick={() => handleDelete(row.tenantId)}
                       >
-                        Eliminar
+                        {t('Eliminar')}
                       </button>
                     </div>
                   )
@@ -235,21 +237,21 @@ export function PoliciesPage() {
                 'maxCostPerDayUsd'
               ]}
             />
-            {listLoading && <div className="muted">Cargando políticas…</div>}
+            {listLoading && <div className="muted">{t('Cargando políticas…')}</div>}
             {!listLoading && policies.length === 0 && (
-              <div className="muted">No hay políticas creadas.</div>
+              <div className="muted">{t('No hay políticas creadas.')}</div>
             )}
           </div>
         )}
 
         <div className="card">
-          <h2>Políticas</h2>
-          <p className="muted">Gestión de límites y redacción por tenant.</p>
+          <h2>{t('Políticas')}</h2>
+          <p className="muted">{t('Gestión de límites y redacción por tenant.')}</p>
           <div className="form-grid">
             <FieldWithHelp help="policiesMaxRequestsPerMinute">
               <input
                 type="number"
-                placeholder="Requests por minuto (ej: 120)"
+                placeholder={t('Requests por minuto (ej: 120)')}
                 value={form.maxRequestsPerMinute}
                 onChange={(event) =>
                   setForm({ ...form, maxRequestsPerMinute: Number(event.target.value) })
@@ -260,7 +262,7 @@ export function PoliciesPage() {
             <FieldWithHelp help="policiesMaxTokensPerDay">
               <input
                 type="number"
-                placeholder="Tokens por día (ej: 200000)"
+                placeholder={t('Tokens por día (ej: 200000)')}
                 value={form.maxTokensPerDay}
                 onChange={(event) =>
                   setForm({ ...form, maxTokensPerDay: Number(event.target.value) })
@@ -272,14 +274,18 @@ export function PoliciesPage() {
               <div className="field-stack">
                 <input
                   type="number"
-                  placeholder="Coste máximo diario USD (ej: 50)"
+                  placeholder={t('Coste máximo diario USD (ej: 50)')}
                   value={form.maxCostPerDayUsd}
                   onChange={(event) =>
                     setForm({ ...form, maxCostPerDayUsd: Number(event.target.value) })
                   }
                   disabled={!canEdit}
                 />
-                <span className="muted">≈ {formatUsdWithEur(Number(form.maxCostPerDayUsd || 0))}</span>
+                <span className="muted">
+                  {t('≈ {amount}', {
+                    amount: formatUsdWithEur(Number(form.maxCostPerDayUsd || 0)),
+                  })}
+                </span>
               </div>
             </FieldWithHelp>
             <FieldWithHelp help="policiesRedactionEnabled">
@@ -292,12 +298,12 @@ export function PoliciesPage() {
                   }
                   disabled={!canEdit}
                 />
-                Redacción habilitada
+                {t('Redacción habilitada')}
               </label>
             </FieldWithHelp>
             <FieldWithHelp help="policiesMetadata">
               <textarea
-                placeholder='metadata JSON (ej: {"plan":"pro"})'
+                placeholder={t('metadata JSON (ej: {"plan":"pro"})')}
                 value={form.metadata}
                 onChange={(event) => setForm({ ...form, metadata: event.target.value })}
                 rows={4}
@@ -307,10 +313,10 @@ export function PoliciesPage() {
             <div className="form-actions">
               {canEdit ? (
                 <button className="btn primary" onClick={handleSave}>
-                  {policy ? 'Actualizar' : 'Crear'} política
+                  {policy ? t('Actualizar') : t('Crear')} {t('política')}
                 </button>
               ) : (
-                <div className="muted">Solo el rol admin puede editar políticas.</div>
+                <div className="muted">{t('Solo el rol admin puede editar políticas.')}</div>
               )}
             </div>
           </div>

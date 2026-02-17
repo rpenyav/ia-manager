@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useDashboard } from '../dashboard';
+import { useI18n } from '../i18n/I18nProvider';
 import { emitToast } from '../toast';
 import { copyToClipboard } from '../utils/clipboard';
 import { storeTenantApiKey } from '../utils/apiKeyStorage';
@@ -12,42 +13,45 @@ type Props = {
   onClose: () => void;
 };
 
-const steps = [
-  {
-    key: 'tenant',
-    title: 'Tenant',
-    description: 'Crea el tenant exclusivo que usara el cliente.'
-  },
-  {
-    key: 'provider',
-    title: 'Provider',
-    description: 'Registra el proveedor LLM con credenciales cifradas.'
-  },
-  {
-    key: 'policy',
-    title: 'Policy',
-    description: 'Define limites, coste y redaccion.'
-  },
-  {
-    key: 'pricing',
-    title: 'Pricing',
-    description: 'Registra el coste del modelo.'
-  },
-  {
-    key: 'apiKey',
-    title: 'API Key',
-    description: 'Genera la API key para el cliente.'
-  },
-  {
-    key: 'runtime',
-    title: 'Runtime',
-    description: 'Ejecuta una prueba basica de runtime.'
-  }
-];
-
 export function ClientOnboardingWizard({ open, onClose }: Props) {
   const { refreshTenants, setSelectedTenantId } = useDashboard();
   const navigate = useNavigate();
+  const { t } = useI18n();
+  const steps = useMemo(
+    () => [
+      {
+        key: 'tenant',
+        title: t('Tenant'),
+        description: t('Crea el tenant exclusivo que usara el cliente.')
+      },
+      {
+        key: 'provider',
+        title: t('Provider'),
+        description: t('Registra el proveedor LLM con credenciales cifradas.')
+      },
+      {
+        key: 'policy',
+        title: t('Policy'),
+        description: t('Define limites, coste y redaccion.')
+      },
+      {
+        key: 'pricing',
+        title: t('Pricing'),
+        description: t('Registra el coste del modelo.')
+      },
+      {
+        key: 'apiKey',
+        title: t('API Key'),
+        description: t('Genera la API key para el cliente.')
+      },
+      {
+        key: 'runtime',
+        title: t('Runtime'),
+        description: t('Ejecuta una prueba basica de runtime.')
+      }
+    ],
+    [t],
+  );
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -173,15 +177,15 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
 
   const handleCreateTenant = async () => {
     if (!tenantForm.name.trim()) {
-      setError('El nombre del tenant es obligatorio.');
+      setError(t('El nombre del tenant es obligatorio.'));
       return;
     }
     if (tenantForm.authUsername.trim() && !tenantForm.authPassword.trim()) {
-      setError('La contraseña del portal es obligatoria si defines un usuario.');
+      setError(t('La contraseña del portal es obligatoria si defines un usuario.'));
       return;
     }
     if (tenantForm.authPassword.trim() && !tenantForm.authUsername.trim()) {
-      setError('El usuario del portal es obligatorio si defines una contraseña.');
+      setError(t('El usuario del portal es obligatorio si defines una contraseña.'));
       return;
     }
     try {
@@ -193,13 +197,13 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
         authUsername: tenantForm.authUsername.trim() || undefined,
         authPassword: tenantForm.authPassword || undefined
       });
-      emitToast('Tenant creado');
+      emitToast(t('Tenant creado'));
       setWizardTenantId(created.id);
       setSelectedTenantId(created.id);
       await refreshTenants();
       setStepIndex(1);
     } catch (err: any) {
-      setError(err.message || 'Error creando tenant');
+      setError(err.message || t('Error creando tenant'));
     } finally {
       setLoading(false);
     }
@@ -207,39 +211,39 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
 
   const handleCreateProvider = async () => {
     if (!wizardTenantId) {
-      setError('Crea un tenant antes de crear el provider.');
+      setError(t('Crea un tenant antes de crear el provider.'));
       return;
     }
     if (!providerForm.displayName.trim()) {
-      setError('El displayName es obligatorio.');
+      setError(t('El displayName es obligatorio.'));
       return;
     }
     const providerType = providerForm.type.toLowerCase();
     if (providerType.includes('openai') && !providerType.includes('azure')) {
       if (!providerForm.apiKey.trim()) {
-        setError('La apiKey es obligatoria.');
+        setError(t('La apiKey es obligatoria.'));
         return;
       }
       if (!providerForm.baseUrl.trim()) {
-        setError('La baseUrl es obligatoria.');
+        setError(t('La baseUrl es obligatoria.'));
         return;
       }
     }
     if (providerType.includes('azure')) {
       if (!providerForm.apiKey.trim() || !providerForm.endpoint.trim() || !providerForm.deployment.trim()) {
-        setError('apiKey, endpoint y deployment son obligatorios para Azure.');
+        setError(t('apiKey, endpoint y deployment son obligatorios para Azure.'));
         return;
       }
     }
     if (providerType.includes('bedrock') || providerType.includes('aws')) {
       if (!providerForm.accessKeyId.trim() || !providerForm.secretAccessKey.trim() || !providerForm.modelId.trim()) {
-        setError('accessKeyId, secretAccessKey y modelId son obligatorios para AWS Bedrock.');
+        setError(t('accessKeyId, secretAccessKey y modelId son obligatorios para AWS Bedrock.'));
         return;
       }
     }
     if (providerType.includes('vertex') || providerType.includes('google') || providerType.includes('gcp')) {
       if (!providerForm.projectId.trim() || !providerForm.gcpModel.trim() || !providerForm.serviceAccount.trim()) {
-        setError('projectId, modelo y service account son obligatorios para Google Vertex.');
+        setError(t('projectId, modelo y service account son obligatorios para Google Vertex.'));
         return;
       }
     }
@@ -248,13 +252,13 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
       setError(null);
       let config: Record<string, unknown> = {};
       if (providerForm.config) {
-        try {
-          config = JSON.parse(providerForm.config);
-        } catch {
-          setError('Config debe ser JSON válido.');
-          return;
-        }
+      try {
+        config = JSON.parse(providerForm.config);
+      } catch {
+        setError(t('Config debe ser JSON válido.'));
+        return;
       }
+    }
       const baseUrl = providerForm.baseUrl.trim();
       let credentialsPayload: Record<string, unknown> = {};
       if (providerType.includes('azure')) {
@@ -274,12 +278,12 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
         };
       } else if (providerType.includes('vertex') || providerType.includes('google') || providerType.includes('gcp')) {
         let serviceAccount: Record<string, unknown> = {};
-        try {
-          serviceAccount = JSON.parse(providerForm.serviceAccount);
-        } catch {
-          setError('Service account debe ser JSON válido.');
-          return;
-        }
+      try {
+        serviceAccount = JSON.parse(providerForm.serviceAccount);
+      } catch {
+        setError(t('Service account debe ser JSON válido.'));
+        return;
+      }
         credentialsPayload = {
           projectId: providerForm.projectId.trim(),
           location: providerForm.location.trim() || 'us-central1',
@@ -303,9 +307,9 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
       };
       const created = await api.createProvider(wizardTenantId, payload);
       setCreatedProviderId(created.id);
-      emitToast('Provider creado');
+      emitToast(t('Provider creado'));
     } catch (err: any) {
-      setError(err.message || 'Error creando provider');
+      setError(err.message || t('Error creando provider'));
     } finally {
       setLoading(false);
     }
@@ -313,7 +317,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
 
   const handleSavePolicy = async () => {
     if (!wizardTenantId) {
-      setError('Crea un tenant antes de crear la política.');
+      setError(t('Crea un tenant antes de crear la política.'));
       return;
     }
     try {
@@ -328,9 +332,9 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
       };
       await api.upsertPolicy(wizardTenantId, payload);
       setPolicySaved(true);
-      emitToast('Política guardada');
+      emitToast(t('Política guardada'));
     } catch (err: any) {
-      setError(err.message || 'Error guardando política');
+      setError(err.message || t('Error guardando política'));
     } finally {
       setLoading(false);
     }
@@ -338,13 +342,13 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
 
   const handleCreatePricing = async () => {
     if (!pricingForm.providerType.trim() || !pricingForm.model.trim()) {
-      setError('Provider y modelo son obligatorios.');
+      setError(t('Provider y modelo son obligatorios.'));
       return;
     }
     const inputCost = Number(pricingForm.inputCostPer1k);
     const outputCost = Number(pricingForm.outputCostPer1k);
     if (!Number.isInteger(inputCost) || !Number.isInteger(outputCost)) {
-      setError('Costes deben ser enteros.');
+      setError(t('Costes deben ser enteros.'));
       return;
     }
     try {
@@ -359,9 +363,9 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
       });
       setPricingSaved(true);
       setRuntimeForm((prev) => ({ ...prev, model: pricingForm.model.trim() }));
-      emitToast('Pricing creado');
+      emitToast(t('Pricing creado'));
     } catch (err: any) {
-      setError(err.message || 'Error creando pricing');
+      setError(err.message || t('Error creando pricing'));
     } finally {
       setLoading(false);
     }
@@ -369,7 +373,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
 
   const handleCreateApiKey = async () => {
     if (!apiKeyForm.name.trim()) {
-      setError('El nombre es obligatorio.');
+      setError(t('El nombre es obligatorio.'));
       return;
     }
     try {
@@ -384,9 +388,9 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
       if (wizardTenantId && created?.apiKey) {
         storeTenantApiKey(wizardTenantId, created.apiKey);
       }
-      emitToast('API key creada');
+      emitToast(t('API key creada'));
     } catch (err: any) {
-      setError(err.message || 'Error creando API key');
+      setError(err.message || t('Error creando API key'));
     } finally {
       setLoading(false);
     }
@@ -394,15 +398,15 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
 
   const handleRuntimeTest = async () => {
     if (!wizardTenantId) {
-      setRuntimeError('Crea un tenant antes de probar runtime.');
+      setRuntimeError(t('Crea un tenant antes de probar runtime.'));
       return;
     }
     if (!runtimeForm.providerId.trim()) {
-      setRuntimeError('ProviderId es obligatorio.');
+      setRuntimeError(t('ProviderId es obligatorio.'));
       return;
     }
     if (!runtimeForm.model.trim()) {
-      setRuntimeError('Modelo es obligatorio.');
+      setRuntimeError(t('Modelo es obligatorio.'));
       return;
     }
     try {
@@ -415,9 +419,9 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
         payload
       });
       setRuntimeResult(result);
-      emitToast('Runtime ejecutado');
+      emitToast(t('Runtime ejecutado'));
     } catch (err: any) {
-      setRuntimeError(err.message || 'Error ejecutando runtime');
+      setRuntimeError(err.message || t('Error ejecutando runtime'));
     } finally {
       setLoading(false);
     }
@@ -436,14 +440,16 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
       <div className="wizard-modal">
         <div className="wizard-header">
           <div>
-            <div className="eyebrow">Onboarding</div>
-            <h2>Nuevo cliente</h2>
+            <div className="eyebrow">{t("Onboarding")}</div>
+            <h2>{t("Nuevo cliente")}</h2>
             <p className="muted">
-              Completa los pasos para dejar el cliente listo para consumir el runtime.
+              {t(
+                "Completa los pasos para dejar el cliente listo para consumir el runtime.",
+              )}
             </p>
           </div>
           <button className="btn" onClick={onClose}>
-            Cerrar
+            {t("Cerrar")}
           </button>
         </div>
 
@@ -475,7 +481,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
               <div className="form-grid">
                 <FieldWithHelp help="tenantsName">
                   <input
-                    placeholder="Nombre (ej: Cliente Acme)"
+                    placeholder={t("Nombre (ej: Cliente Acme)")}
                     value={tenantForm.name}
                     onChange={(event) => setTenantForm({ ...tenantForm, name: event.target.value })}
                   />
@@ -489,12 +495,12 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                         setTenantForm({ ...tenantForm, killSwitch: event.target.checked })
                       }
                     />
-                    Kill switch
+                    {t("Kill switch")}
                   </label>
                 </FieldWithHelp>
                 <FieldWithHelp help="tenantsPortalUsername">
                   <input
-                    placeholder="Usuario portal (ej: cliente_acme)"
+                    placeholder={t("Usuario portal (ej: cliente_acme)")}
                     value={tenantForm.authUsername}
                     onChange={(event) =>
                       setTenantForm({ ...tenantForm, authUsername: event.target.value })
@@ -504,7 +510,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 <FieldWithHelp help="tenantsPortalPassword">
                   <input
                     type="password"
-                    placeholder="Contraseña inicial"
+                    placeholder={t("Contraseña inicial")}
                     value={tenantForm.authPassword}
                     onChange={(event) =>
                       setTenantForm({ ...tenantForm, authPassword: event.target.value })
@@ -513,7 +519,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 </FieldWithHelp>
                 <div className="form-actions">
                   <button className="btn primary" onClick={handleCreateTenant} disabled={loading}>
-                    Crear tenant
+                    {t("Crear tenant")}
                   </button>
                 </div>
               </div>
@@ -522,7 +528,9 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
 
           {currentStep.key === 'provider' && (
             <div className="wizard-panel">
-              <p className="muted">Crea un tenant antes de registrar el proveedor.</p>
+              <p className="muted">
+                {t("Crea un tenant antes de registrar el proveedor.")}
+              </p>
               <div className="form-grid">
                 <FieldWithHelp help="providersType">
                   <select
@@ -540,7 +548,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 </FieldWithHelp>
                 <FieldWithHelp help="providersDisplayName">
                   <input
-                    placeholder="displayName (ej: OpenAI Cliente X)"
+                    placeholder={t("displayName (ej: OpenAI Cliente X)")}
                     value={providerForm.displayName}
                     onChange={(event) =>
                       setProviderForm({ ...providerForm, displayName: event.target.value })
@@ -551,7 +559,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                   <>
                     <FieldWithHelp help="providersApiKey">
                       <input
-                        placeholder="apiKey (ej: sk-...)"
+                        placeholder={t("apiKey (ej: sk-...)")}
                         value={providerForm.apiKey}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, apiKey: event.target.value })
@@ -560,7 +568,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersBaseUrl">
                       <input
-                        placeholder="baseUrl (ej: https://api.openai.com)"
+                        placeholder={t("baseUrl (ej: https://api.openai.com)")}
                         value={providerForm.baseUrl}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, baseUrl: event.target.value })
@@ -573,7 +581,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                   <>
                     <FieldWithHelp help="providersApiKey">
                       <input
-                        placeholder="apiKey (ej: ...)"
+                        placeholder={t("apiKey (ej: ...)")}
                         value={providerForm.apiKey}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, apiKey: event.target.value })
@@ -582,7 +590,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersEndpoint">
                       <input
-                        placeholder="endpoint (ej: https://<recurso>.openai.azure.com)"
+                        placeholder={t("endpoint (ej: https://<recurso>.openai.azure.com)")}
                         value={providerForm.endpoint}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, endpoint: event.target.value })
@@ -591,7 +599,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersDeployment">
                       <input
-                        placeholder="deployment (ej: gpt-4o-mini)"
+                        placeholder={t("deployment (ej: gpt-4o-mini)")}
                         value={providerForm.deployment}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, deployment: event.target.value })
@@ -600,7 +608,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersApiVersion">
                       <input
-                        placeholder="apiVersion (ej: 2024-02-15-preview)"
+                        placeholder={t("apiVersion (ej: 2024-02-15-preview)")}
                         value={providerForm.apiVersion}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, apiVersion: event.target.value })
@@ -631,7 +639,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersAwsSessionToken">
                       <input
-                        placeholder="sessionToken (opcional)"
+                        placeholder={t("sessionToken (opcional)")}
                         value={providerForm.sessionToken}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, sessionToken: event.target.value })
@@ -640,7 +648,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersAwsRegion">
                       <input
-                        placeholder="region (ej: us-east-1)"
+                        placeholder={t("region (ej: us-east-1)")}
                         value={providerForm.region}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, region: event.target.value })
@@ -649,7 +657,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersAwsModelId">
                       <input
-                        placeholder="modelId (ej: anthropic.claude-3-haiku-20240307-v1:0)"
+                        placeholder={t("modelId (ej: anthropic.claude-3-haiku-20240307-v1:0)")}
                         value={providerForm.modelId}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, modelId: event.target.value })
@@ -664,7 +672,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                   <>
                     <FieldWithHelp help="providersGcpProjectId">
                       <input
-                        placeholder="projectId"
+                        placeholder={t("projectId")}
                         value={providerForm.projectId}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, projectId: event.target.value })
@@ -673,7 +681,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersGcpLocation">
                       <input
-                        placeholder="location (ej: us-central1)"
+                        placeholder={t("location (ej: us-central1)")}
                         value={providerForm.location}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, location: event.target.value })
@@ -682,7 +690,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersGcpModel">
                       <input
-                        placeholder="model (ej: gemini-1.5-pro)"
+                        placeholder={t("model (ej: gemini-1.5-pro)")}
                         value={providerForm.gcpModel}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, gcpModel: event.target.value })
@@ -691,7 +699,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     </FieldWithHelp>
                     <FieldWithHelp help="providersGcpServiceAccount">
                       <textarea
-                        placeholder="service account JSON"
+                        placeholder={t("service account JSON")}
                         value={providerForm.serviceAccount}
                         onChange={(event) =>
                           setProviderForm({ ...providerForm, serviceAccount: event.target.value })
@@ -703,7 +711,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 )}
                 <FieldWithHelp help="providersConfig">
                   <textarea
-                    placeholder='config JSON (ej: {"model":"gpt-4o-mini"})'
+                    placeholder={t('config JSON (ej: {"model":"gpt-4o-mini"})')}
                     value={providerForm.config}
                     onChange={(event) =>
                       setProviderForm({ ...providerForm, config: event.target.value })
@@ -720,7 +728,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                         setProviderForm({ ...providerForm, enabled: event.target.checked })
                       }
                     />
-                    Habilitado
+                    {t("Habilitado")}
                   </label>
                 </FieldWithHelp>
                 <div className="form-actions">
@@ -729,22 +737,22 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     onClick={handleCreateProvider}
                     disabled={loading || !wizardTenantId}
                   >
-                    Crear provider
+                    {t("Crear provider")}
                   </button>
                 </div>
               </div>
               {createdProviderId && (
                 <div className="wizard-result">
-                  <div className="label">Provider ID</div>
+                  <div className="label">{t("Provider ID")}</div>
                   <div className="wizard-inline">
                     <div className="pill">{createdProviderId}</div>
                     <button
                       className="copy-button"
                       type="button"
-                      onClick={() => copyValue(createdProviderId, 'Provider ID')}
+                      onClick={() => copyValue(createdProviderId, t('Provider ID'))}
                     >
                       <span className="copy-icon" aria-hidden="true" />
-                      Copiar
+                      {t("Copiar")}
                     </button>
                   </div>
                 </div>
@@ -758,7 +766,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 <FieldWithHelp help="policiesMaxRequestsPerMinute">
                   <input
                     type="number"
-                    placeholder="Requests por minuto (ej: 120)"
+                    placeholder={t("Requests por minuto (ej: 120)")}
                     value={policyForm.maxRequestsPerMinute}
                     onChange={(event) =>
                       setPolicyForm({
@@ -771,7 +779,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 <FieldWithHelp help="policiesMaxTokensPerDay">
                   <input
                     type="number"
-                    placeholder="Tokens por día (ej: 200000)"
+                    placeholder={t("Tokens por día (ej: 200000)")}
                     value={policyForm.maxTokensPerDay}
                     onChange={(event) =>
                       setPolicyForm({
@@ -784,7 +792,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 <FieldWithHelp help="policiesMaxCostPerDayUsd">
                   <input
                     type="number"
-                    placeholder="Coste máximo diario USD (ej: 50)"
+                    placeholder={t("Coste máximo diario USD (ej: 50)")}
                     value={policyForm.maxCostPerDayUsd}
                     onChange={(event) =>
                       setPolicyForm({
@@ -806,12 +814,12 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                         })
                       }
                     />
-                    Redacción habilitada
+                    {t("Redacción habilitada")}
                   </label>
                 </FieldWithHelp>
                 <FieldWithHelp help="policiesMetadata">
                   <textarea
-                    placeholder='metadata JSON (ej: {"plan":"pro"})'
+                    placeholder={t('metadata JSON (ej: {"plan":"pro"})')}
                     value={policyForm.metadata}
                     onChange={(event) =>
                       setPolicyForm({ ...policyForm, metadata: event.target.value })
@@ -825,7 +833,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                     onClick={handleSavePolicy}
                     disabled={loading || !wizardTenantId}
                   >
-                    Guardar política
+                    {t("Guardar política")}
                   </button>
                 </div>
               </div>
@@ -837,7 +845,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
               <div className="form-grid">
                 <FieldWithHelp help="pricingProviderType">
                   <input
-                    placeholder="providerType (ej: openai)"
+                    placeholder={t("providerType (ej: openai)")}
                     value={pricingForm.providerType}
                     onChange={(event) =>
                       setPricingForm({ ...pricingForm, providerType: event.target.value })
@@ -847,7 +855,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 </FieldWithHelp>
                 <FieldWithHelp help="pricingModel">
                   <input
-                    placeholder="model (ej: gpt-4o-mini)"
+                    placeholder={t("model (ej: gpt-4o-mini)")}
                     value={pricingForm.model}
                     onChange={(event) =>
                       setPricingForm({ ...pricingForm, model: event.target.value })
@@ -856,7 +864,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 </FieldWithHelp>
                 <FieldWithHelp help="pricingInputCostPer1k">
                   <input
-                    placeholder="inputCostPer1k (ej: 1)"
+                    placeholder={t("inputCostPer1k (ej: 1)")}
                     value={pricingForm.inputCostPer1k}
                     onChange={(event) =>
                       setPricingForm({ ...pricingForm, inputCostPer1k: event.target.value })
@@ -865,7 +873,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 </FieldWithHelp>
                 <FieldWithHelp help="pricingOutputCostPer1k">
                   <input
-                    placeholder="outputCostPer1k (ej: 2)"
+                    placeholder={t("outputCostPer1k (ej: 2)")}
                     value={pricingForm.outputCostPer1k}
                     onChange={(event) =>
                       setPricingForm({ ...pricingForm, outputCostPer1k: event.target.value })
@@ -881,12 +889,12 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                         setPricingForm({ ...pricingForm, enabled: event.target.checked })
                       }
                     />
-                    Habilitado
+                    {t("Habilitado")}
                   </label>
                 </FieldWithHelp>
                 <div className="form-actions">
                   <button className="btn primary" onClick={handleCreatePricing} disabled={loading}>
-                    Crear pricing
+                    {t("Crear pricing")}
                   </button>
                 </div>
               </div>
@@ -898,7 +906,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
               <div className="form-grid">
                 <FieldWithHelp help="apiKeysName">
                   <input
-                    placeholder="name (ej: cliente-acme)"
+                    placeholder={t("name (ej: cliente-acme)")}
                     value={apiKeyForm.name}
                     onChange={(event) =>
                       setApiKeyForm({ ...apiKeyForm, name: event.target.value })
@@ -907,7 +915,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 </FieldWithHelp>
                 <FieldWithHelp help="apiKeysTenantId">
                   <input
-                    placeholder="tenantId (opcional, ej: 7d9f...)"
+                    placeholder={t("tenantId (opcional, ej: 7d9f...)")}
                     value={apiKeyForm.tenantId}
                     onChange={(event) =>
                       setApiKeyForm({ ...apiKeyForm, tenantId: event.target.value })
@@ -916,38 +924,38 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 </FieldWithHelp>
                 <div className="form-actions">
                   <button className="btn primary" onClick={handleCreateApiKey} disabled={loading}>
-                    Crear API key
+                    {t("Crear API key")}
                   </button>
                 </div>
               </div>
               {createdApiKey && (
                 <div className="wizard-result">
-                  <div className="label">API Key creada</div>
+                  <div className="label">{t("API Key creada")}</div>
                   <div className="wizard-inline">
                     <div className="pill">{createdApiKey}</div>
                     <button
                       className="copy-button"
                       type="button"
-                      onClick={() => copyValue(createdApiKey, 'API Key')}
+                      onClick={() => copyValue(createdApiKey, t('API Key'))}
                     >
                       <span className="copy-icon" aria-hidden="true" />
-                      Copiar
+                      {t("Copiar")}
                     </button>
                   </div>
                 </div>
               )}
               {wizardTenantId && (
                 <div className="wizard-result">
-                  <div className="label">Tenant ID (nuevo)</div>
+                  <div className="label">{t("Tenant ID (nuevo)")}</div>
                   <div className="wizard-inline">
                     <div className="pill">{wizardTenantId}</div>
                     <button
                       className="copy-button"
                       type="button"
-                      onClick={() => copyValue(wizardTenantId, 'Tenant ID')}
+                      onClick={() => copyValue(wizardTenantId, t('Tenant ID'))}
                     >
                       <span className="copy-icon" aria-hidden="true" />
-                      Copiar
+                      {t("Copiar")}
                     </button>
                   </div>
                 </div>
@@ -960,7 +968,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
               <div className="form-grid">
                 <FieldWithHelp help="runtimeProviderId">
                   <input
-                    placeholder="providerId (ej: 7d9f...)"
+                    placeholder={t("providerId (ej: 7d9f...)")}
                     value={runtimeForm.providerId}
                     onChange={(event) =>
                       setRuntimeForm({ ...runtimeForm, providerId: event.target.value })
@@ -969,14 +977,14 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 </FieldWithHelp>
                 <FieldWithHelp help="runtimeModel">
                   <input
-                    placeholder="model (ej: gpt-4o-mini)"
+                    placeholder={t("model (ej: gpt-4o-mini)")}
                     value={runtimeForm.model}
                     readOnly
                   />
                 </FieldWithHelp>
                 <FieldWithHelp help="runtimePayload">
                   <textarea
-                    placeholder='payload JSON (ej: {"messages":[{"role":"user","content":"Hola"}]})'
+                    placeholder={t('payload JSON (ej: {"messages":[{"role":"user","content":"Hola"}]})')}
                     value={runtimeForm.payload}
                     onChange={(event) =>
                       setRuntimeForm({ ...runtimeForm, payload: event.target.value })
@@ -986,20 +994,21 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
                 </FieldWithHelp>
                 <div className="form-actions">
                   <button className="btn primary" onClick={handleRuntimeTest} disabled={loading}>
-                    Ejecutar prueba
+                    {t("Ejecutar prueba")}
                   </button>
                 </div>
               </div>
               {runtimeError && <div className="error-banner">{runtimeError}</div>}
               {runtimeError?.includes('Tenant is disabled') && (
                 <div className="muted">
-                  Revisa en Settings el kill switch global y en Tenants que el estado sea
-                  activo y el kill switch esté desactivado.
+                  {t(
+                    "Revisa en Settings el kill switch global y en Tenants que el estado sea activo y el kill switch esté desactivado.",
+                  )}
                 </div>
               )}
               {runtimeResult && (
                 <div className="wizard-result">
-                  <div className="label">Respuesta</div>
+                  <div className="label">{t("Respuesta")}</div>
                   <pre className="code-block">
                     {JSON.stringify(runtimeResult, null, 2)}
                   </pre>
@@ -1015,7 +1024,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
             onClick={() => setStepIndex((prev) => Math.max(prev - 1, 0))}
             disabled={stepIndex === 0}
           >
-            Anterior
+            {t("Anterior")}
           </button>
           <button
             className="btn primary"
@@ -1033,7 +1042,7 @@ export function ClientOnboardingWizard({ open, onClose }: Props) {
               stepIndex === 0 || !completed[currentStep.key as keyof typeof completed]
             }
           >
-            {stepIndex === steps.length - 1 ? 'Finalizar' : 'Siguiente'}
+            {stepIndex === steps.length - 1 ? t("Finalizar") : t("Siguiente")}
           </button>
         </div>
       </div>

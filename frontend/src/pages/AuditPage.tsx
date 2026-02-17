@@ -6,8 +6,10 @@ import { PageWithDocs } from '../components/PageWithDocs';
 import { buildAuditStatusByDay, countAuditByAction } from '../utils/chartData';
 import { DataTable } from '../components/DataTable';
 import { StatusBadgeIcon } from '../components/StatusBadgeIcon';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function AuditPage() {
+  const { t } = useI18n();
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,11 +19,11 @@ export function AuditPage() {
         const auditList = await api.getAudit(200);
         setAudit(auditList);
       } catch (err: any) {
-        setError(err.message || 'Error cargando auditoría');
+        setError(err.message || t('Error cargando auditoría'));
       }
     };
     load();
-  }, []);
+  }, [t]);
 
   const actionsData = useMemo(() => countAuditByAction(audit, 6), [audit]);
   const statusByDay = useMemo(() => buildAuditStatusByDay(audit, 7), [audit]);
@@ -73,33 +75,33 @@ export function AuditPage() {
         {error && <div className="error-banner full-row">{error}</div>}
 
       <div className="card">
-        <h2>Eventos por tipo</h2>
-        <p className="muted">Distribución global de acciones recientes.</p>
+        <h2>{t('Eventos por tipo')}</h2>
+        <p className="muted">{t('Distribución global de acciones recientes.')}</p>
         <Chart option={actionsOption} height={220} />
       </div>
 
       <div className="card">
-        <h2>Severidad por día</h2>
-        <p className="muted">Volumen de eventos por estado.</p>
+        <h2>{t('Severidad por día')}</h2>
+        <p className="muted">{t('Volumen de eventos por estado.')}</p>
         <Chart option={statusOption} height={220} />
       </div>
 
       <div className="card full-row">
-        <h2>Auditoría</h2>
-        <p className="muted">Trazabilidad global sin almacenar prompts completos.</p>
+        <h2>{t('Auditoría')}</h2>
+        <p className="muted">{t('Trazabilidad global sin almacenar prompts completos.')}</p>
         <DataTable
           columns={[
-            { key: 'action', label: 'Acción', sortable: true },
-            { key: 'tenantId', label: 'Tenant', sortable: true },
+            { key: 'action', label: t('Acción'), sortable: true },
+            { key: 'tenantId', label: t('Tenant'), sortable: true },
             {
               key: 'status',
-              label: 'Estado',
+              label: t('Estado'),
               sortable: true,
               render: (item: AuditEvent) => <StatusBadgeIcon status={item.status} />
             },
             {
               key: 'createdAt',
-              label: 'Hora',
+              label: t('Hora'),
               sortable: true,
               render: (item: AuditEvent) =>
                 new Date(item.createdAt).toLocaleString()
@@ -111,9 +113,9 @@ export function AuditPage() {
           filterKeys={['action', 'tenantId', 'status']}
         />
         <div className="muted">
-          Para auditoría por tenant, entra en el perfil del cliente.
+          {t('Para auditoría por tenant, entra en el perfil del cliente.')}
         </div>
-        {audit.length === 0 && <div className="muted">Sin eventos registrados.</div>}
+        {audit.length === 0 && <div className="muted">{t('Sin eventos registrados.')}</div>}
       </div>
       </section>
     </PageWithDocs>

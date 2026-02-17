@@ -37,6 +37,10 @@ public class DocsService {
     entry.setCategory(normalizeCategory(dto.category));
     entry.setTitle(dto.title);
     entry.setContent(dto.content);
+    entry.setTitleEn(dto.titleEn);
+    entry.setContentEn(dto.contentEn);
+    entry.setTitleCa(dto.titleCa);
+    entry.setContentCa(dto.contentCa);
     entry.setLink(dto.link);
     entry.setOrderIndex(dto.orderIndex != null ? dto.orderIndex : 0);
     entry.setEnabled(dto.enabled != null ? dto.enabled : true);
@@ -60,6 +64,18 @@ public class DocsService {
     }
     if (dto.content != null) {
       entry.setContent(dto.content);
+    }
+    if (dto.titleEn != null) {
+      entry.setTitleEn(dto.titleEn);
+    }
+    if (dto.contentEn != null) {
+      entry.setContentEn(dto.contentEn);
+    }
+    if (dto.titleCa != null) {
+      entry.setTitleCa(dto.titleCa);
+    }
+    if (dto.contentCa != null) {
+      entry.setContentCa(dto.contentCa);
     }
     if (dto.link != null) {
       entry.setLink(dto.link);
@@ -100,6 +116,10 @@ public class DocsService {
     public String category;
     public String title;
     public String content;
+    public String titleEn;
+    public String contentEn;
+    public String titleCa;
+    public String contentCa;
     public String link;
     public Integer orderIndex;
     public Boolean enabled;
@@ -110,6 +130,10 @@ public class DocsService {
     public String category;
     public String title;
     public String content;
+    public String titleEn;
+    public String contentEn;
+    public String titleCa;
+    public String contentCa;
     public String link;
     public Integer orderIndex;
     public Boolean enabled;

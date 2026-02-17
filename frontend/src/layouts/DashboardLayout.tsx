@@ -7,22 +7,11 @@ import type { DocumentationEntry } from "../types";
 import { FieldWithHelp } from "../components/FieldWithHelp";
 import { ClientOnboardingWizard } from "../components/ClientOnboardingWizard";
 import LogoNeria from "../adapters/ui/react/components/icons/LogoNeria";
-
-const titleMap: Record<string, string> = {
-  "/": "Overview",
-  "/tenants": "Tenants",
-  "/usage": "Usage",
-  "/audit": "Audit",
-  "/docs": "Documentation",
-  "/settings": "Settings",
-  "/services": "Servicios",
-  "/services/new": "Servicios",
-  "/profile": "Perfil",
-  "/admin/users": "Usuarios",
-  "/admin/subscriptions": "Suscripciones",
-};
+import { useI18n } from "../i18n/I18nProvider";
+import { Breadcrumbs, type BreadcrumbItem } from "../components/Breadcrumbs";
 
 export function DashboardLayout() {
+  const { t } = useI18n();
   const {
     user,
     name,
@@ -35,9 +24,22 @@ export function DashboardLayout() {
     useDashboard();
   const location = useLocation();
   const navigate = useNavigate();
+  const titleMap: Record<string, string> = {
+    "/": t("Resumen"),
+    "/tenants": t("Clientes"),
+    "/usage": t("Uso"),
+    "/audit": t("Auditoría"),
+    "/docs": t("Documentación"),
+    "/settings": t("Configuración"),
+    "/services": t("Servicios"),
+    "/services/new": t("Servicios"),
+    "/profile": t("Perfil"),
+    "/admin/users": t("Usuarios"),
+    "/admin/subscriptions": t("Suscripciones"),
+  };
   const pageTitle =
     titleMap[location.pathname] ||
-    (location.pathname.startsWith("/services") ? "Servicios" : "Neria Manager");
+    (location.pathname.startsWith("/services") ? t("Servicios") : "Neria Manager");
   const [activeEntry, setActiveEntry] = useState<DocumentationEntry | null>(
     null,
   );
@@ -51,28 +53,99 @@ export function DashboardLayout() {
     role === "tenant"
       ? [
           {
-            label: "Cliente",
+            label: t("Cliente"),
             to: authTenantId ? `/clients/${authTenantId}` : "/",
           },
-          { label: "Docs", to: "/docs" },
-          { label: "Perfil", to: "/profile" },
+          { label: t("Docs"), to: "/docs" },
+          { label: t("Perfil"), to: "/profile" },
         ]
       : [
-          { label: "Overview", to: "/" },
-          { label: "Tenants", to: "/tenants" },
-          ...(role === "admin" ? [{ label: "Servicios", to: "/services" }] : []),
-          { label: "Usage", to: "/usage" },
-          { label: "Audit", to: "/audit" },
-          { label: "Docs", to: "/docs" },
-          ...(role === "admin" ? [{ label: "Settings", to: "/settings" }] : []),
-          { label: "Perfil", to: "/profile" },
+          { label: t("Resumen"), to: "/" },
+          { label: t("Clientes"), to: "/tenants" },
+          ...(role === "admin" ? [{ label: t("Servicios"), to: "/services" }] : []),
+          { label: t("Uso"), to: "/usage" },
+          { label: t("Auditoría"), to: "/audit" },
+          { label: t("Docs"), to: "/docs" },
+          ...(role === "admin" ? [{ label: t("Configuración"), to: "/settings" }] : []),
+          { label: t("Perfil"), to: "/profile" },
           ...(role === "admin"
             ? [
-                { label: "Usuarios", to: "/admin/users" },
-                { label: "Suscripciones", to: "/admin/subscriptions" },
+                { label: t("Usuarios"), to: "/admin/users" },
+                { label: t("Suscripciones"), to: "/admin/subscriptions" },
               ]
             : []),
         ];
+
+  const buildBreadcrumbs = (): BreadcrumbItem[] => {
+    const path = location.pathname;
+    const parts = path.split("/").filter(Boolean);
+    if (path === "/") {
+      return [];
+    }
+    const withHome = (items: BreadcrumbItem[]) => [
+      { label: t("Inicio"), to: "/" },
+      ...items,
+    ];
+
+    if (parts[0] === "clients" && parts[1]) {
+      const tenantLabel = selectedTenant?.name || parts[1];
+      const base: BreadcrumbItem[] = [
+        { label: t("Clientes"), to: "/tenants" },
+        { label: tenantLabel, to: `/clients/${parts[1]}` },
+      ];
+      if (parts[2] === "services" && parts[3]) {
+        return withHome([
+          ...base,
+          { label: t("Servicios"), to: `/clients/${parts[1]}` },
+          { label: parts[3] },
+        ]);
+      }
+      if (parts[2] === "observability") {
+        return withHome([...base, { label: t("Observabilidad") }]);
+      }
+      if (parts[2] === "usage") {
+        return withHome([...base, { label: t("Uso") }]);
+      }
+      return withHome(base);
+    }
+
+    if (path.startsWith("/services")) {
+      if (path === "/services") {
+        return withHome([{ label: t("Servicios") }]);
+      }
+      if (path === "/services/new") {
+        return withHome([
+          { label: t("Servicios"), to: "/services" },
+          { label: t("Nuevo") },
+        ]);
+      }
+      return withHome([
+        { label: t("Servicios"), to: "/services" },
+        { label: t("Detalle") },
+      ]);
+    }
+
+    const map: Record<string, BreadcrumbItem[]> = {
+      "/tenants": [{ label: t("Clientes") }],
+      "/providers": [{ label: t("Proveedores") }],
+      "/policies": [{ label: t("Políticas") }],
+      "/runtime": [{ label: t("Runtime") }],
+      "/usage": [{ label: t("Uso") }],
+      "/audit": [{ label: t("Auditoría") }],
+      "/pricing": [{ label: t("Pricing") }],
+      "/webhooks": [{ label: t("Webhooks") }],
+      "/notifications": [{ label: t("Notificaciones") }],
+      "/api-keys": [{ label: t("API keys") }],
+      "/docs": [{ label: t("Documentación") }],
+      "/profile": [{ label: t("Perfil") }],
+      "/settings": [{ label: t("Configuración") }],
+      "/admin/users": [{ label: t("Usuarios") }],
+      "/admin/subscriptions": [{ label: t("Suscripciones") }],
+    };
+    const items = map[path] || [];
+    return items.length ? withHome(items) : [];
+  };
+  const breadcrumbs = buildBreadcrumbs();
 
   useEffect(() => {
     const match = location.pathname.match(/^\/clients\/([^/]+)/);
@@ -139,7 +212,7 @@ export function DashboardLayout() {
                   <NavLink
                     to="/profile"
                     className="avatar-link"
-                    aria-label="Ir al perfil"
+                    aria-label={t("Ir al perfil")}
                   >
                     <span
                       className={`avatar-circle ${
@@ -149,11 +222,11 @@ export function DashboardLayout() {
                       {(name || user || "").trim().charAt(0).toUpperCase()}
                     </span>
                   </NavLink>
-                  <span>Usuario: {name || user}</span>
+                  <span>{t("Usuario: {name}", { name: name || user || "" })}</span>
                 </div>
               )}
               <button className="btn btn-ghost" onClick={logout}>
-                Salir
+                {t("Salir")}
               </button>
             </div>
             <div className="header-actions-right">
@@ -173,7 +246,7 @@ export function DashboardLayout() {
                       }}
                     >
                       <option value="" disabled>
-                        Seleccionar cliente
+                        {t("Seleccionar cliente")}
                       </option>
                       {tenants.map((tenant) => (
                         <option value={tenant.id} key={tenant.id}>
@@ -189,7 +262,7 @@ export function DashboardLayout() {
                   className="btn primary"
                   onClick={() => setWizardOpen(true)}
                 >
-                  Nuevo cliente
+                  {t("Nuevo cliente")}
                 </button>
               )}
             </div>
@@ -198,6 +271,7 @@ export function DashboardLayout() {
       </header>
 
       <main className="main">
+        <Breadcrumbs items={breadcrumbs} />
         <div
           className={`page-header ${isClientRoute ? "page-header-split" : ""}`}
         >
@@ -210,15 +284,15 @@ export function DashboardLayout() {
                   className="btn"
                   onClick={() =>
                     selectedTenantId
-                      ? navigate(`/clients/${selectedTenantId}`)
-                      : navigate(-1)
-                  }
-                >
-                  Volver
-                </button>
-              )}
-            </>
+                  ? navigate(`/clients/${selectedTenantId}`)
+                  : navigate(-1)
+              }
+            >
+              {t("Volver")}
+            </button>
           )}
+        </>
+      )}
         </div>
 
         <Outlet />
@@ -229,11 +303,11 @@ export function DashboardLayout() {
           <div className="footer-meta">
             <span className="muted">Neria Manager</span>
             <span className="footer-separator">•</span>
-            <span className="muted">Version 0.1.0</span>
+            <span className="muted">{t("Versión 0.1.0")}</span>
           </div>
           <div className="footer-links">
             <NavLink to="/docs" className="link">
-              Documentación
+              {t("Documentación")}
             </NavLink>
           </div>
         </div>
@@ -254,7 +328,7 @@ export function DashboardLayout() {
                 <h2>{activeEntry.title}</h2>
               </div>
               <button className="btn" onClick={() => setActiveEntry(null)}>
-                Cerrar
+                {t("Cerrar")}
               </button>
             </div>
             <div className="docs-modal-body">
@@ -266,7 +340,7 @@ export function DashboardLayout() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Abrir referencia
+                  {t("Abrir referencia")}
                 </a>
               )}
             </div>

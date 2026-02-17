@@ -7,9 +7,11 @@ import { FieldWithHelp } from '../components/FieldWithHelp';
 import { PageWithDocs } from '../components/PageWithDocs';
 import { DataTable } from '../components/DataTable';
 import { StatusBadgeIcon } from '../components/StatusBadgeIcon';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function TenantsPage() {
   const { role } = useAuth();
+  const { t } = useI18n();
   const isAdmin = role === 'admin';
   const { tenants, loading, error, refreshTenants } = useDashboard();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export function TenantsPage() {
       await refreshTenants();
       resetForm();
     } catch (err: any) {
-      setActionError(err.message || 'Error guardando tenant');
+      setActionError(err.message || t('Error guardando tenant'));
     }
   };
 
@@ -82,7 +84,7 @@ export function TenantsPage() {
       await api.toggleTenantKillSwitch(tenant.id, !tenant.killSwitch);
       await refreshTenants();
     } catch (err: any) {
-      setActionError(err.message || 'Error actualizando kill switch');
+      setActionError(err.message || t('Error actualizando kill switch'));
     }
   };
 
@@ -94,19 +96,19 @@ export function TenantsPage() {
 
         {isAdmin && (
           <div className="card full-row">
-            <h2>{editingId ? 'Editar tenant' : 'Nuevo tenant'}</h2>
-            <p className="muted">Crea o actualiza tenants desde el backoffice.</p>
+            <h2>{editingId ? t('Editar cliente') : t('Nuevo cliente')}</h2>
+            <p className="muted">{t('Crea o actualiza clientes desde el backoffice.')}</p>
             <div className="form-grid">
               <FieldWithHelp help="tenantsName">
                 <input
-                  placeholder="Nombre (ej: Cliente Acme)"
+                  placeholder={t('Nombre (ej: Cliente Acme)')}
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
                 />
               </FieldWithHelp>
               <FieldWithHelp help="tenantsBillingEmail">
                 <input
-                  placeholder="Email facturación (ej: billing@cliente.com)"
+                  placeholder={t('Email facturación (ej: billing@cliente.com)')}
                   value={form.billingEmail}
                   onChange={(event) =>
                     setForm({ ...form, billingEmail: event.target.value })
@@ -119,9 +121,9 @@ export function TenantsPage() {
                     value={form.status}
                     onChange={(event) => setForm({ ...form, status: event.target.value })}
                   >
-                    <option value="active">active</option>
-                    <option value="suspended">suspended</option>
-                    <option value="disabled">disabled</option>
+                    <option value="active">{t('active')}</option>
+                    <option value="suspended">{t('suspended')}</option>
+                    <option value="disabled">{t('disabled')}</option>
                   </select>
                 </FieldWithHelp>
               )}
@@ -132,12 +134,12 @@ export function TenantsPage() {
                   checked={form.killSwitch}
                   onChange={(event) => setForm({ ...form, killSwitch: event.target.checked })}
                 />
-                Kill switch
+                {t('Kill switch')}
               </label>
             </FieldWithHelp>
             <FieldWithHelp help="tenantsPortalUsername">
               <input
-                placeholder="Usuario portal (ej: cliente_acme)"
+                placeholder={t('Usuario portal (ej: cliente_acme)')}
                 value={form.authUsername}
                 onChange={(event) => setForm({ ...form, authUsername: event.target.value })}
               />
@@ -145,18 +147,22 @@ export function TenantsPage() {
             <FieldWithHelp help="tenantsPortalPassword">
               <input
                 type="password"
-                placeholder={editingId ? 'Nueva contraseña (opcional)' : 'Contraseña inicial'}
+                placeholder={
+                  editingId
+                    ? t('Nueva contraseña (opcional)')
+                    : t('Contraseña inicial')
+                }
                 value={form.authPassword}
                 onChange={(event) => setForm({ ...form, authPassword: event.target.value })}
               />
             </FieldWithHelp>
             <div className="form-actions">
               <button className="btn primary" onClick={handleSubmit}>
-                {editingId ? 'Actualizar' : 'Crear'}
+                {editingId ? t('Actualizar') : t('Crear')}
               </button>
                 {editingId && (
                   <button className="btn" onClick={resetForm}>
-                    Cancelar
+                    {t('Cancelar')}
                   </button>
                 )}
               </div>
@@ -165,18 +171,20 @@ export function TenantsPage() {
         )}
 
         <div className="card full-row">
-          <h2>Tenants</h2>
-          <p className="muted">Gestión multi-tenant y control de estado.</p>
-          {loading && <div className="muted">Cargando tenants...</div>}
-          {!loading && tenants.length === 0 && <div className="muted">No hay tenants.</div>}
+          <h2>{t('Clientes')}</h2>
+          <p className="muted">{t('Gestión multi-tenant y control de estado.')}</p>
+          {loading && <div className="muted">{t('Cargando clientes...')}</div>}
+          {!loading && tenants.length === 0 && (
+            <div className="muted">{t('No hay clientes.')}</div>
+          )}
           {tenants.length > 0 && (
             <DataTable
               columns={[
-                { key: 'id', label: 'ID', sortable: true },
-                { key: 'name', label: 'Nombre', sortable: true },
+                { key: 'id', label: t('ID'), sortable: true },
+                { key: 'name', label: t('Nombre'), sortable: true },
                 {
                   key: 'status',
-                  label: 'Estado',
+                  label: t('Estado'),
                   sortable: true,
                   render: (tenant: Tenant) => <StatusBadgeIcon status={tenant.status} />
                 },
@@ -184,9 +192,10 @@ export function TenantsPage() {
                   ? [
                       {
                         key: 'killSwitch',
-                        label: 'Kill switch',
+                        label: t('Kill switch'),
                         sortable: true,
-                        render: (tenant: Tenant) => (tenant.killSwitch ? 'ON' : 'OFF')
+                        render: (tenant: Tenant) =>
+                          tenant.killSwitch ? t('ON') : t('OFF')
                       }
                     ]
                   : []),
@@ -194,17 +203,17 @@ export function TenantsPage() {
                   ? [
                       {
                         key: 'actions',
-                        label: 'Acciones',
+                        label: t('Acciones'),
                         render: (tenant: Tenant) => (
                           <div className="row-actions">
                             <button className="link" onClick={() => handleEdit(tenant)}>
-                              Editar
+                              {t('Editar')}
                             </button>
                             <button
                               className="link"
                               onClick={() => handleToggleKillSwitch(tenant)}
                             >
-                              {tenant.killSwitch ? 'Desactivar' : 'Activar'}
+                              {tenant.killSwitch ? t('Desactivar') : t('Activar')}
                             </button>
                           </div>
                         )

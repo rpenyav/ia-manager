@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn } from "../components/DataTable";
 import { PageWithDocs } from "../components/PageWithDocs";
 import { LoaderComponent } from "../components/LoaderComponent";
 import { StatusBadgeIcon } from "../components/StatusBadgeIcon";
+import { InfoTooltip } from "../components/InfoTooltip";
 import { useAuth } from "../auth";
 import { useDashboard } from "../dashboard";
 import { emitToast } from "../toast";
@@ -34,10 +35,12 @@ import { formatEur, formatUsdWithEur } from "../utils/currency";
 import { copyToClipboard } from "../utils/clipboard";
 import { getTenantApiKey, storeTenantApiKey } from "../utils/apiKeyStorage";
 import { Z2_EMPHASIS_LIFT } from "echarts/types/src/util/states.js";
+import { useI18n } from "../i18n/I18nProvider";
 
 export function ClientSummaryPage() {
   const { tenantId } = useParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const {
     role,
     tenantId: authTenantId,
@@ -607,7 +610,7 @@ export function ClientSummaryPage() {
         if (invoiceList) setTenantInvoices(invoiceList as TenantInvoiceEntry[]);
         setError(null);
       } catch (err: any) {
-        setError(err.message || "Error cargando resumen de cliente");
+        setError(err.message || t("Error cargando resumen de cliente"));
       }
     };
     load();
@@ -708,7 +711,7 @@ export function ClientSummaryPage() {
       setServiceEndpoints(endpoints as TenantServiceEndpoint[]);
       setServiceUsers(users as TenantServiceUser[]);
     } catch (err: any) {
-      emitToast(err.message || "No se pudo cargar el servicio", "error");
+      emitToast(err.message || t("No se pudo cargar el servicio"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -735,9 +738,9 @@ export function ClientSummaryPage() {
         policyId: serviceConfigDraft.policyId,
       });
       await refreshTenantServices(activeService.serviceCode);
-      emitToast("Configuración del servicio guardada.");
+      emitToast(t("Configuración del servicio guardada."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo guardar el servicio", "error");
+      emitToast(err.message || t("No se pudo guardar el servicio"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -749,18 +752,18 @@ export function ClientSummaryPage() {
     }
     if (!hasTenantApiKey) {
       setServiceRuntimeError(
-        "Necesitas una API key activa para ejecutar runtime.",
+        t("Necesitas una API key activa para ejecutar runtime."),
       );
       return;
     }
     const providerId =
       serviceConfigDraft.providerId || serviceRuntimeForm.providerId;
     if (!providerId.trim()) {
-      setServiceRuntimeError("Provider es obligatorio.");
+      setServiceRuntimeError(t("Provider es obligatorio."));
       return;
     }
     if (!serviceRuntimeForm.model.trim()) {
-      setServiceRuntimeError("Modelo es obligatorio.");
+      setServiceRuntimeError(t("Modelo es obligatorio."));
       return;
     }
     let payload: Record<string, any> = {};
@@ -769,7 +772,7 @@ export function ClientSummaryPage() {
         ? JSON.parse(serviceRuntimeForm.payload)
         : {};
     } catch {
-      setServiceRuntimeError("Payload debe ser JSON válido.");
+      setServiceRuntimeError(t("Payload debe ser JSON válido."));
       return;
     }
     try {
@@ -782,9 +785,9 @@ export function ClientSummaryPage() {
         serviceCode: activeService.serviceCode,
       });
       setServiceRuntimeResult(result);
-      emitToast("Runtime ejecutado");
+      emitToast(t("Runtime ejecutado"));
     } catch (err: any) {
-      setServiceRuntimeError(err.message || "Error ejecutando runtime");
+      setServiceRuntimeError(err.message || t("Error ejecutando runtime"));
     } finally {
       setServiceRuntimeBusy(false);
     }
@@ -797,7 +800,7 @@ export function ClientSummaryPage() {
     try {
       return JSON.parse(value);
     } catch (err) {
-      emitToast("Headers debe ser un JSON válido.", "error");
+      emitToast(t("Headers debe ser un JSON válido."), "error");
       return undefined;
     }
   };
@@ -855,9 +858,9 @@ export function ClientSummaryPage() {
         enabled: true,
       });
       setServiceEndpointMode("create");
-      emitToast("Endpoint guardado.");
+      emitToast(t("Endpoint guardado."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo guardar el endpoint", "error");
+      emitToast(err.message || t("No se pudo guardar el endpoint"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -883,12 +886,12 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "¿Eliminar endpoint?",
+      title: t("¿Eliminar endpoint?"),
       text: endpoint.slug,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Eliminar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -903,9 +906,9 @@ export function ClientSummaryPage() {
       setServiceEndpoints((prev) =>
         prev.filter((item) => item.id !== endpoint.id),
       );
-      emitToast("Endpoint eliminado.");
+      emitToast(t("Endpoint eliminado."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo eliminar el endpoint", "error");
+      emitToast(err.message || t("No se pudo eliminar el endpoint"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -927,9 +930,9 @@ export function ClientSummaryPage() {
       setServiceUsers(users as TenantServiceUser[]);
       setServiceAssignUserId("");
       await refreshTenantServices(activeService.serviceCode);
-      emitToast("Usuario asignado.");
+      emitToast(t("Usuario asignado."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo asignar el usuario", "error");
+      emitToast(err.message || t("No se pudo asignar el usuario"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -955,9 +958,9 @@ export function ClientSummaryPage() {
         activeService.serviceCode,
       );
       setServiceUsers(users as TenantServiceUser[]);
-      emitToast("Usuario actualizado.");
+      emitToast(t("Usuario actualizado."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo actualizar el usuario", "error");
+      emitToast(err.message || t("No se pudo actualizar el usuario"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -968,12 +971,12 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "¿Quitar acceso al servicio?",
+      title: t("¿Quitar acceso al servicio?"),
       text: assignment.user.email,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Quitar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Quitar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -991,9 +994,9 @@ export function ClientSummaryPage() {
       );
       setServiceUsers(users as TenantServiceUser[]);
       await refreshTenantServices(activeService.serviceCode);
-      emitToast("Usuario removido.");
+      emitToast(t("Usuario removido."));
     } catch (err: any) {
-      emitToast(err.message || "No se pudo quitar el usuario", "error");
+      emitToast(err.message || t("No se pudo quitar el usuario"), "error");
     } finally {
       setServiceBusy(false);
     }
@@ -1060,21 +1063,23 @@ export function ClientSummaryPage() {
     }
     if (!hasTenantApiKey) {
       await Swal.fire({
-        title: "API key requerida",
-        text: "Necesitas una API key activa para crear o actualizar la suscripción.",
+        title: t("API key requerida"),
+        text: t(
+          "Necesitas una API key activa para crear o actualizar la suscripción.",
+        ),
         icon: "info",
-        confirmButtonText: "Entendido",
+        confirmButtonText: t("Entendido"),
       });
       return;
     }
     if (subscription) {
       const result = await Swal.fire({
-        title: "Actualizar suscripción",
-        text: "¿Guardar los cambios de la suscripción?",
+        title: t("Actualizar suscripción"),
+        text: t("¿Guardar los cambios de la suscripción?"),
         icon: "question",
         showCancelButton: true,
-        confirmButtonText: "Guardar",
-        cancelButtonText: "Cancelar",
+        confirmButtonText: t("Guardar"),
+        cancelButtonText: t("Cancelar"),
       });
       if (!result.isConfirmed) {
         return;
@@ -1125,7 +1130,7 @@ export function ClientSummaryPage() {
         // ignore invoice refresh errors
       }
       emitToast(
-        subscription ? "Suscripción actualizada" : "Suscripción creada",
+        subscription ? t("Suscripción actualizada") : t("Suscripción creada"),
       );
     } catch (err: any) {
       try {
@@ -1151,7 +1156,7 @@ export function ClientSummaryPage() {
             // ignore invoice refresh errors
           }
           emitToast(
-            "Suscripción creada, pero hubo un error al confirmar el pago.",
+            t("Suscripción creada, pero hubo un error al confirmar el pago."),
             "error",
           );
           return;
@@ -1159,7 +1164,7 @@ export function ClientSummaryPage() {
       } catch {
         // ignore refresh errors
       }
-      setError(err.message || "Error guardando suscripción");
+      setError(err.message || t("Error guardando suscripción"));
     } finally {
       const elapsed = Date.now() - startedAt;
       const remaining = 3000 - elapsed;
@@ -1179,15 +1184,15 @@ export function ClientSummaryPage() {
       return;
     }
     if (!addonServiceCode) {
-      setAddonError("Selecciona un servicio para añadir.");
+      setAddonError(t("Selecciona un servicio para añadir."));
       return;
     }
     if (!hasTenantApiKey) {
       await Swal.fire({
-        title: "API key requerida",
-        text: "Necesitas una API key activa para añadir servicios.",
+        title: t("API key requerida"),
+        text: t("Necesitas una API key activa para añadir servicios."),
         icon: "info",
-        confirmButtonText: "Entendido",
+        confirmButtonText: t("Entendido"),
       });
       return;
     }
@@ -1228,9 +1233,9 @@ export function ClientSummaryPage() {
       } catch {
         // ignore invoice refresh errors
       }
-      emitToast("Servicio añadido a la suscripción");
+      emitToast(t("Servicio añadido a la suscripción"));
     } catch (err: any) {
-      setAddonError(err.message || "Error añadiendo servicio");
+      setAddonError(err.message || t("Error añadiendo servicio"));
     } finally {
       setAddonBusy(false);
     }
@@ -1241,12 +1246,12 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "Desasignar servicio",
-      text: `¿Desasignar ${service.name}?`,
+      title: t("Desasignar servicio"),
+      text: t("¿Desasignar {name}?", { name: service.name }),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Desasignar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Desasignar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -1280,9 +1285,9 @@ export function ClientSummaryPage() {
       } catch {
         // ignore invoice refresh errors
       }
-      emitToast("Servicio desasignado");
+      emitToast(t("Servicio desasignado"));
     } catch (err: any) {
-      emitToast(err.message || "Error desasignando servicio", "error");
+      emitToast(err.message || t("Error desasignando servicio"), "error");
     } finally {
       setServiceRemoveBusy(false);
     }
@@ -1295,16 +1300,19 @@ export function ClientSummaryPage() {
       return;
     }
     if (!service.tenantServiceId) {
-      emitToast("Service ID no disponible.", "error");
+      emitToast(t("Service ID no disponible."), "error");
       return;
     }
     const result = await Swal.fire({
-      title: "Eliminar asignación",
-      text: `Se borrará la asignación y todos los datos asociados de ${service.name}. Esta acción no se puede deshacer.`,
+      title: t("Eliminar asignación"),
+      text: t(
+        "Se borrará la asignación y todos los datos asociados de {name}. Esta acción no se puede deshacer.",
+        { name: service.name },
+      ),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Eliminar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -1339,9 +1347,9 @@ export function ClientSummaryPage() {
       } catch {
         // ignore invoice refresh errors
       }
-      emitToast("Asignación eliminada");
+      emitToast(t("Asignación eliminada"));
     } catch (err: any) {
-      emitToast(err.message || "Error eliminando asignación", "error");
+      emitToast(err.message || t("Error eliminando asignación"), "error");
     } finally {
       setServiceRemoveBusy(false);
     }
@@ -1352,18 +1360,18 @@ export function ClientSummaryPage() {
       return;
     }
     if (addonService.endpointsEnabled === false) {
-      setAddonEndpointsError("Este servicio no admite endpoints.");
+      setAddonEndpointsError(t("Este servicio no admite endpoints."));
       return;
     }
     if (!addonAlreadyAdded) {
       setAddonEndpointsError(
-        "Añade el servicio a la suscripción antes de informar endpoints.",
+        t("Añade el servicio a la suscripción antes de informar endpoints."),
       );
       return;
     }
     const raw = addonEndpointsInput.trim();
     if (!raw) {
-      setAddonEndpointsError("Introduce al menos un endpoint.");
+      setAddonEndpointsError(t("Introduce al menos un endpoint."));
       return;
     }
     const lines = raw
@@ -1371,7 +1379,7 @@ export function ClientSummaryPage() {
       .map((line) => line.trim())
       .filter(Boolean);
     if (lines.length === 0) {
-      setAddonEndpointsError("Introduce endpoints válidos.");
+      setAddonEndpointsError(t("Introduce endpoints válidos."));
       return;
     }
     const parsed: Array<{ label: string; method: string; path: string }> = [];
@@ -1402,7 +1410,9 @@ export function ClientSummaryPage() {
     });
     if (invalid.length > 0) {
       setAddonEndpointsError(
-        'Formato inválido. Usa JSON por línea con label. Ejemplo: {"label":"Chat","method":"POST","path":"/v1/chat"}',
+        t(
+          'Formato inválido. Usa JSON por línea con label. Ejemplo: {"label":"Chat","method":"POST","path":"/v1/chat"}',
+        ),
       );
       return;
     }
@@ -1447,9 +1457,9 @@ export function ClientSummaryPage() {
       await refreshTenantServices(addonServiceCode);
       setAddonEndpointsInput("");
       setAddonEndpointsExpanded(false);
-      emitToast("Endpoints añadidos.");
+      emitToast(t("Endpoints añadidos."));
     } catch (err: any) {
-      setAddonEndpointsError(err.message || "Error guardando endpoints.");
+      setAddonEndpointsError(err.message || t("Error guardando endpoints."));
     } finally {
       setAddonEndpointsBusy(false);
     }
@@ -1464,24 +1474,28 @@ export function ClientSummaryPage() {
     }
     if (!hasTenantApiKey) {
       await Swal.fire({
-        title: "API key requerida",
-        text: "Necesitas una API key activa para asignar servicios.",
+        title: t("API key requerida"),
+        text: t("Necesitas una API key activa para asignar servicios."),
         icon: "info",
-        confirmButtonText: "Entendido",
+        confirmButtonText: t("Entendido"),
       });
       return;
     }
-    const action = checked ? "Activar servicio" : "Desactivar servicio";
+    const action = checked
+      ? t("Activar servicio")
+      : t("Desactivar servicio");
     const message = checked
-      ? "Se añadirá el servicio y quedará pendiente hasta la próxima renovación."
-      : "Se dará de baja el servicio y no se cobrará en la próxima renovación.";
+      ? t(
+          "Se añadirá el servicio y quedará pendiente hasta la próxima renovación.",
+        )
+      : t("Se dará de baja el servicio y no se cobrará en la próxima renovación.");
     const result = await Swal.fire({
       title: action,
       text: message,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Confirmar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Confirmar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -1522,7 +1536,7 @@ export function ClientSummaryPage() {
   const handleSaveTenant = async (nextForm: typeof tenantForm) => {
     const resolvedName = nextForm.name.trim() || tenant?.name?.trim() || "";
     if (!tenantId) {
-      setError("No se pudo identificar el tenant.");
+      setError(t("No se pudo identificar el tenant."));
       return;
     }
     try {
@@ -1540,9 +1554,9 @@ export function ClientSummaryPage() {
           : await api.updateTenant(tenantId, payload);
       setTenant(updated as Tenant);
       setTenantForm((prev) => ({ ...prev, ...nextForm }));
-      emitToast("Datos de cliente actualizados");
+      emitToast(t("Datos de cliente actualizados"));
     } catch (err: any) {
-      setError(err.message || "Error guardando datos del cliente");
+      setError(err.message || t("Error guardando datos del cliente"));
       throw err;
     } finally {
       setTenantSaving(false);
@@ -1580,12 +1594,12 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "Confirmar cambios",
-      text: "¿Guardar cambios en este campo?",
+      title: t("Confirmar cambios"),
+      text: t("¿Guardar cambios en este campo?"),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Guardar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Guardar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       if (field === editingField) {
@@ -1687,15 +1701,17 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "Confirmar suscripción",
+      title: t("Confirmar suscripción"),
       text:
         mode === "now"
-          ? "¿Dar de baja inmediata a esta suscripción?"
-          : "La cancelación pondrá fin a la suscripción antes de la próxima renovación. Los servicios adquiridos quedarán inactivos, se congelará el gasto y seguirán listados. Podrás reactivar la suscripción antes de la próxima fecha de renovación. Si la suscripción finaliza en su periodo, los servicios se desvincularán definitivamente.",
+          ? t("¿Dar de baja inmediata a esta suscripción?")
+          : t(
+              "La cancelación pondrá fin a la suscripción antes de la próxima renovación. Los servicios adquiridos quedarán inactivos, se congelará el gasto y seguirán listados. Podrás reactivar la suscripción antes de la próxima fecha de renovación. Si la suscripción finaliza en su periodo, los servicios se desvincularán definitivamente.",
+            ),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Confirmar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Confirmar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -1719,9 +1735,9 @@ export function ClientSummaryPage() {
         cancelAtPeriodEnd: Boolean(updated.subscription.cancelAtPeriodEnd),
       });
       await refreshTenantServices();
-      emitToast("Suscripción actualizada");
+      emitToast(t("Suscripción actualizada"));
     } catch (err: any) {
-      setError(err.message || "Error actualizando suscripción");
+      setError(err.message || t("Error actualizando suscripción"));
     } finally {
       const elapsed = Date.now() - startedAt;
       const remaining = 3000 - elapsed;
@@ -1741,12 +1757,14 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "Reactivar suscripción",
-      text: "La suscripción volverá a estar activa y los servicios quedarán operativos inmediatamente. Podrás volver a cancelar antes del fin del periodo si lo necesitas.",
+      title: t("Reactivar suscripción"),
+      text: t(
+        "La suscripción volverá a estar activa y los servicios quedarán operativos inmediatamente. Podrás volver a cancelar antes del fin del periodo si lo necesitas.",
+      ),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Reactivar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Reactivar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -1768,9 +1786,9 @@ export function ClientSummaryPage() {
         cancelAtPeriodEnd: Boolean(updated.subscription.cancelAtPeriodEnd),
       });
       await refreshTenantServices();
-      emitToast("Suscripción reactivada");
+      emitToast(t("Suscripción reactivada"));
     } catch (err: any) {
-      setError(err.message || "Error reactivando suscripción");
+      setError(err.message || t("Error reactivando suscripción"));
     } finally {
       const elapsed = Date.now() - startedAt;
       const remaining = 3000 - elapsed;
@@ -1787,12 +1805,14 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "Eliminar suscripción",
-      text: "Se eliminará la suscripción y todo el historial asociado (servicios, facturas y solicitudes). Esta acción no se puede deshacer.",
+      title: t("Eliminar suscripción"),
+      text: t(
+        "Se eliminará la suscripción y todo el historial asociado (servicios, facturas y solicitudes). Esta acción no se puede deshacer.",
+      ),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Eliminar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -1808,9 +1828,9 @@ export function ClientSummaryPage() {
         serviceCodes: [],
         cancelAtPeriodEnd: false,
       });
-      emitToast("Suscripción eliminada");
+      emitToast(t("Suscripción eliminada"));
     } catch (err: any) {
-      setError(err.message || "Error eliminando suscripción");
+      setError(err.message || t("Error eliminando suscripción"));
     } finally {
       setSubscriptionBusy(false);
     }
@@ -1834,16 +1854,16 @@ export function ClientSummaryPage() {
         storeTenantApiKey(tenantId, created.apiKey);
         setCreatedApiKey(created.apiKey);
         await copyToClipboard(created.apiKey, "API key");
-        emitToast("API key creada y copiada");
+        emitToast(t("API key creada y copiada"));
       } else {
-        emitToast("API key creada");
+        emitToast(t("API key creada"));
       }
       const list = await api.listApiKeys();
       setApiKeys(
         (list as ApiKeySummary[]).filter((item) => item.tenantId === tenantId),
       );
     } catch (err: any) {
-      setError(err.message || "Error creando API key");
+      setError(err.message || t("Error creando API key"));
     } finally {
       setApiKeyBusy(false);
     }
@@ -1852,7 +1872,7 @@ export function ClientSummaryPage() {
   const handleCopyStoredApiKey = async () => {
     if (!storedApiKey) {
       emitToast(
-        "API key no disponible. Cópiala al crearla en API Keys.",
+        t("API key no disponible. Cópiala al crearla en API Keys."),
         "error",
       );
       return;
@@ -1893,17 +1913,17 @@ export function ClientSummaryPage() {
       return;
     }
     if (!providerForm.displayName.trim()) {
-      emitToast("El displayName es obligatorio.", "error");
+      emitToast(t("El displayName es obligatorio."), "error");
       return;
     }
     const providerType = providerForm.type.toLowerCase();
     if (providerType.includes("openai") && !providerType.includes("azure")) {
       if (!providerForm.apiKey.trim()) {
-        emitToast("La API key es obligatoria.", "error");
+        emitToast(t("La API key es obligatoria."), "error");
         return;
       }
       if (!providerForm.baseUrl.trim()) {
-        emitToast("La URL base es obligatoria.", "error");
+        emitToast(t("La URL base es obligatoria."), "error");
         return;
       }
     }
@@ -1913,7 +1933,7 @@ export function ClientSummaryPage() {
         !providerForm.endpoint.trim() ||
         !providerForm.deployment.trim()
       ) {
-        emitToast("apiKey, endpoint y deployment son obligatorios.", "error");
+        emitToast(t("apiKey, endpoint y deployment son obligatorios."), "error");
         return;
       }
     }
@@ -1924,7 +1944,7 @@ export function ClientSummaryPage() {
         !providerForm.modelId.trim()
       ) {
         emitToast(
-          "accessKeyId, secretAccessKey y modelId son obligatorios.",
+          t("accessKeyId, secretAccessKey y modelId son obligatorios."),
           "error",
         );
         return;
@@ -1941,7 +1961,7 @@ export function ClientSummaryPage() {
         !providerForm.serviceAccount.trim()
       ) {
         emitToast(
-          "projectId, modelo y service account son obligatorios.",
+          t("projectId, modelo y service account son obligatorios."),
           "error",
         );
         return;
@@ -1952,7 +1972,7 @@ export function ClientSummaryPage() {
       try {
         config = JSON.parse(providerForm.config);
       } catch {
-        emitToast("Config debe ser JSON válido.", "error");
+        emitToast(t("Config debe ser JSON válido."), "error");
         return;
       }
     }
@@ -1985,7 +2005,7 @@ export function ClientSummaryPage() {
       try {
         serviceAccount = JSON.parse(providerForm.serviceAccount);
       } catch {
-        emitToast("Service account debe ser JSON válido.", "error");
+        emitToast(t("Service account debe ser JSON válido."), "error");
         return;
       }
       credentialsPayload = {
@@ -2014,9 +2034,9 @@ export function ClientSummaryPage() {
       const list = await api.getProviders(tenantId);
       setProviders(list as Provider[]);
       setProviderModalOpen(false);
-      emitToast("Provider creado");
+      emitToast(t("Provider creado"));
     } catch (err: any) {
-      emitToast(err.message || "Error creando provider", "error");
+      emitToast(err.message || t("Error creando provider"), "error");
     } finally {
       setProviderBusy(false);
     }
@@ -2042,7 +2062,7 @@ export function ClientSummaryPage() {
       try {
         metadata = JSON.parse(policyForm.metadata);
       } catch (err) {
-        emitToast("Metadata debe ser JSON válido.", "error");
+        emitToast(t("Metadata debe ser JSON válido."), "error");
         return;
       }
     }
@@ -2058,9 +2078,9 @@ export function ClientSummaryPage() {
       const updated = await api.upsertPolicy(tenantId, payload);
       setPolicy(updated as Policy);
       setPolicyModalOpen(false);
-      emitToast("Política guardada");
+      emitToast(t("Política guardada"));
     } catch (err: any) {
-      emitToast(err.message || "Error guardando política", "error");
+      emitToast(err.message || t("Error guardando política"), "error");
     } finally {
       setPolicyBusy(false);
     }
@@ -2076,9 +2096,9 @@ export function ClientSummaryPage() {
         pricingIds: pricingSelection,
       });
       setPricingSelection(updated.pricingIds || []);
-      emitToast("Pricing guardado");
+      emitToast(t("Pricing guardado"));
     } catch (err: any) {
-      const message = err.message || "Error guardando pricing";
+      const message = err.message || t("Error guardando pricing");
       setError(message);
       emitToast(message, "error");
     } finally {
@@ -2099,13 +2119,13 @@ export function ClientSummaryPage() {
 
   const handleCreatePricing = async () => {
     if (!pricingForm.providerType.trim() || !pricingForm.model.trim()) {
-      emitToast("Provider y modelo son obligatorios.", "error");
+      emitToast(t("Provider y modelo son obligatorios."), "error");
       return;
     }
     const inputCost = Number(pricingForm.inputCostPer1k);
     const outputCost = Number(pricingForm.outputCostPer1k);
     if (!Number.isFinite(inputCost) || !Number.isFinite(outputCost)) {
-      emitToast("Costes deben ser numéricos.", "error");
+      emitToast(t("Costes deben ser numéricos."), "error");
       return;
     }
     try {
@@ -2123,9 +2143,9 @@ export function ClientSummaryPage() {
         setPricingSelection((prev) => [...prev, created.id]);
       }
       setPricingModalOpen(false);
-      emitToast("Pricing creado");
+      emitToast(t("Pricing creado"));
     } catch (err: any) {
-      emitToast(err.message || "Error creando pricing", "error");
+      emitToast(err.message || t("Error creando pricing"), "error");
     } finally {
       setPricingBusy(false);
     }
@@ -2149,9 +2169,9 @@ export function ClientSummaryPage() {
       setChatUsers((prev) => [created as ChatUserSummary, ...prev]);
       setNewChatUser({ name: "", email: "", password: "" });
       setChatUserModalOpen(false);
-      emitToast("Usuario de chat creado");
+      emitToast(t("Usuario de chat creado"));
     } catch (err: any) {
-      setError(err.message || "Error creando usuario de chat");
+      setError(err.message || t("Error creando usuario de chat"));
     } finally {
       setChatBusy(false);
     }
@@ -2170,9 +2190,9 @@ export function ClientSummaryPage() {
       setChatUsers((prev) =>
         prev.map((user) => (user.id === id ? updated : user)),
       );
-      emitToast("Usuario actualizado");
+      emitToast(t("Usuario actualizado"));
     } catch (err: any) {
-      setError(err.message || "Error actualizando usuario");
+      setError(err.message || t("Error actualizando usuario"));
     } finally {
       setChatBusy(false);
     }
@@ -2186,15 +2206,15 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "Confirmar acción",
+      title: t("Confirmar acción"),
       text:
         nextStatus === "disabled"
-          ? "¿Desactivar este usuario de chat?"
-          : "¿Activar este usuario de chat?",
+          ? t("¿Desactivar este usuario de chat?")
+          : t("¿Activar este usuario de chat?"),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Confirmar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Confirmar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -2210,12 +2230,12 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: "Eliminar usuario",
-      text: "¿Eliminar este usuario de chat?",
+      title: t("Eliminar usuario"),
+      text: t("¿Eliminar este usuario de chat?"),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Eliminar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -2224,9 +2244,9 @@ export function ClientSummaryPage() {
       setChatBusy(true);
       await api.deleteChatUser(tenantId, id);
       setChatUsers((prev) => prev.filter((user) => user.id !== id));
-      emitToast("Usuario eliminado");
+      emitToast(t("Usuario eliminado"));
     } catch (err: any) {
-      setError(err.message || "Error eliminando usuario");
+      setError(err.message || t("Error eliminando usuario"));
     } finally {
       setChatBusy(false);
     }
@@ -2247,15 +2267,18 @@ export function ClientSummaryPage() {
       return;
     }
     const result = await Swal.fire({
-      title: chatUserMode === "create" ? "Crear usuario" : "Guardar cambios",
+      title:
+        chatUserMode === "create"
+          ? t("Crear usuario")
+          : t("Guardar cambios"),
       text:
         chatUserMode === "create"
-          ? "¿Crear este usuario de chat?"
-          : "¿Guardar cambios en este usuario?",
+          ? t("¿Crear este usuario de chat?")
+          : t("¿Guardar cambios en este usuario?"),
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Confirmar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Confirmar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -2285,9 +2308,9 @@ export function ClientSummaryPage() {
         prev.map((user) => (user.id === editingChatUserId ? updated : user)),
       );
       setChatUserModalOpen(false);
-      emitToast("Usuario actualizado");
+      emitToast(t("Usuario actualizado"));
     } catch (err: any) {
-      setError(err.message || "Error actualizando usuario");
+      setError(err.message || t("Error actualizando usuario"));
     } finally {
       setChatBusy(false);
     }
@@ -2307,7 +2330,7 @@ export function ClientSummaryPage() {
     },
     {
       key: "status",
-      label: "Estado",
+      label: t("Estado"),
       sortable: true,
       render: (user) => <StatusBadgeIcon status={user.status} />,
     },
@@ -2405,7 +2428,7 @@ export function ClientSummaryPage() {
   const handleDownloadInvoice = (invoiceId: string) => {
     const entry = invoiceEntryMap.get(invoiceId);
     if (!entry) {
-      emitToast("No se pudo generar la factura.", "error");
+      emitToast(t("No se pudo generar la factura."), "error");
       return;
     }
     const { invoice, items } = entry;
@@ -2589,7 +2612,7 @@ export function ClientSummaryPage() {
           <button
             type="button"
             className="icon-button"
-            title="Descargar PDF"
+            title={t("Descargar PDF")}
             onClick={() => handleDownloadInvoice(row.id)}
           >
             ⤓
@@ -2602,7 +2625,7 @@ export function ClientSummaryPage() {
   if (!tenantId) {
     return (
       <PageWithDocs slug="tenants">
-        <div className="muted">Selecciona un tenant para ver el resumen.</div>
+        <div className="muted">{t("Selecciona un tenant para ver el resumen.")}</div>
       </PageWithDocs>
     );
   }
@@ -2614,13 +2637,14 @@ export function ClientSummaryPage() {
         <div className="tenant-detail-summary col-md-3 col-xxl-4">
           <div className="card">
             <div>
-              <h2>Resumen</h2>
-              <p className="muted">Datos generales del cliente.</p>
+              <h2>{t("Resumen")}</h2>
+              <p className="muted">{t("Datos generales del cliente.")}</p>
             </div>
             {!tenant?.billingEmail && (
               <div className="info-banner">
-                Falta el email de facturación. Algunas acciones quedarán
-                bloqueadas hasta completarlo.
+                {t(
+                  "Falta el email de facturación. Algunas acciones quedarán bloqueadas hasta completarlo.",
+                )}
               </div>
             )}
             <div className="mini-list summary-list">
@@ -2629,111 +2653,111 @@ export function ClientSummaryPage() {
                 <span>{tenant?.id || tenantId}</span>
               </div>
               {renderEditableRow(
-                "Nombre",
+                t("Nombre"),
                 "name",
                 tenantForm.name,
-                "Nombre del cliente",
+                t("Nombre del cliente"),
               )}
               <div className="mini-row summary-inline-row">
-                <span>Estado</span>
+                <span>{t("Estado")}</span>
                 <StatusBadgeIcon status={tenant?.status || "active"} />
               </div>
               <div className="mini-row summary-inline-row">
-                <span>Kill switch</span>
-                <span>{tenant?.killSwitch ? "ON" : "OFF"}</span>
+                <span>{t("Kill switch")}</span>
+                <span>{tenant?.killSwitch ? t("ON") : t("OFF")}</span>
               </div>
               {renderEditableRow(
-                "Email facturación",
+                t("Email facturación"),
                 "billingEmail",
-                tenantForm.billingEmail || "No definido",
-                "billing@cliente.com",
+                tenantForm.billingEmail || t("No definido"),
+                t("billing@cliente.com"),
                 "email",
               )}
               {renderEditableRow(
-                "Empresa",
+                t("Empresa"),
                 "companyName",
                 tenantForm.companyName,
-                "Razón social",
+                t("Razón social"),
               )}
               {renderEditableRow(
-                "Responsable",
+                t("Responsable"),
                 "contactName",
                 tenantForm.contactName,
-                "Nombre del responsable",
+                t("Nombre del responsable"),
               )}
               {renderEditableRow(
-                "Teléfono",
+                t("Teléfono"),
                 "phone",
                 tenantForm.phone,
-                "+34 600 000 000",
+                t("+34 600 000 000"),
                 "tel",
               )}
               {renderEditableRow(
-                "Web",
+                t("Web"),
                 "website",
                 tenantForm.website,
-                "https://cliente.com",
+                t("https://cliente.com"),
               )}
               {renderEditableRow(
-                "CIF/NIF",
+                t("CIF/NIF"),
                 "taxId",
                 tenantForm.taxId,
-                "B12345678",
+                t("B12345678"),
               )}
               {renderEditableRow(
-                "Dirección",
+                t("Dirección"),
                 "addressLine1",
                 tenantForm.addressLine1,
-                "Calle, número",
+                t("Calle, número"),
               )}
               {renderEditableRow(
-                "Dirección (2)",
+                t("Dirección (2)"),
                 "addressLine2",
                 tenantForm.addressLine2,
-                "Piso, puerta",
+                t("Piso, puerta"),
               )}
-              {renderEditableRow("Ciudad", "city", tenantForm.city, "Madrid")}
+              {renderEditableRow(t("Ciudad"), "city", tenantForm.city, t("Madrid"))}
               {renderEditableRow(
-                "Código postal",
+                t("Código postal"),
                 "postalCode",
                 tenantForm.postalCode,
-                "28001",
+                t("28001"),
               )}
               {renderEditableRow(
-                "País",
+                t("País"),
                 "country",
                 tenantForm.country,
-                "España",
+                t("España"),
               )}
               {renderEditableRow(
-                "Dirección facturación",
+                t("Dirección facturación"),
                 "billingAddressLine1",
                 tenantForm.billingAddressLine1,
-                "Calle, número",
+                t("Calle, número"),
               )}
               {renderEditableRow(
-                "Dirección facturación (2)",
+                t("Dirección facturación (2)"),
                 "billingAddressLine2",
                 tenantForm.billingAddressLine2,
-                "Piso, puerta",
+                t("Piso, puerta"),
               )}
               {renderEditableRow(
-                "Ciudad facturación",
+                t("Ciudad facturación"),
                 "billingCity",
                 tenantForm.billingCity,
-                "Madrid",
+                t("Madrid"),
               )}
               {renderEditableRow(
-                "CP facturación",
+                t("CP facturación"),
                 "billingPostalCode",
                 tenantForm.billingPostalCode,
-                "28001",
+                t("28001"),
               )}
               {renderEditableRow(
-                "País facturación",
+                t("País facturación"),
                 "billingCountry",
                 tenantForm.billingCountry,
-                "España",
+                t("España"),
               )}
             </div>
           </div>
@@ -2742,17 +2766,18 @@ export function ClientSummaryPage() {
         <div className="tenant-detail-content col-md-9 col-xxl-8">
           <section className="masonry tenant-detail-masonry">
             <div className="card">
-              <h2>Servicios habilitados</h2>
+              <h2>{t("Servicios habilitados")}</h2>
               <p className="muted tight">
-                Servicios incluidos en la suscripción actual.
+                {t("Servicios incluidos en la suscripción actual.")}
               </p>
               <div className="chart-block">
                 <Chart option={serviceOption} height={200} />
               </div>
               {contractedServices.length === 0 && (
                 <div className="muted tight">
-                  No hay servicios contratados. Crea una suscripción para
-                  activar servicios.
+                  {t(
+                    "No hay servicios contratados. Crea una suscripción para activar servicios.",
+                  )}
                 </div>
               )}
               {canManageSubscription && (
@@ -2761,7 +2786,7 @@ export function ClientSummaryPage() {
                     className="btn primary"
                     onClick={() => setAssignServicesModalOpen(true)}
                   >
-                    Asignar servicios
+                    {t("Asignar servicios")}
                   </button>
                 </div>
               )}
@@ -2829,14 +2854,14 @@ export function ClientSummaryPage() {
             )} */}
 
             <div className="card">
-              <h2>Tendencia de uso</h2>
+              <h2>{t("Tendencia de uso")}</h2>
               <p className="muted tight">
-                Tokens y coste por día (últimos 7 días).
+                {t("Tokens y coste por día (últimos 7 días).")}
               </p>
               <Chart option={usageTrendOption} height={220} />
               <div className="chart-row">
                 <div className="chart-metric">
-                  <span className="muted">Tokens 7d</span>
+                  <span className="muted">{t("Tokens 7d")}</span>
                   <div className="metric">
                     {dailyUsage.tokens
                       .reduce((acc, value) => acc + value, 0)
@@ -2850,7 +2875,7 @@ export function ClientSummaryPage() {
                   />
                 </div>
                 <div className="chart-metric">
-                  <span className="muted">Coste 7d (USD/EUR)</span>
+                  <span className="muted">{t("Coste 7d (USD/EUR)")}</span>
                   <div className="metric">
                     {formatUsdWithEur(
                       dailyUsage.cost.reduce((acc, value) => acc + value, 0),
@@ -2868,13 +2893,13 @@ export function ClientSummaryPage() {
             </div>
 
             <div className="card">
-              <h2>Uso (hoy)</h2>
-              <p className="muted tight">Resumen de consumo diario.</p>
+              <h2>{t("Uso (hoy)")}</h2>
+              <p className="muted tight">{t("Resumen de consumo diario.")}</p>
               {usageSummary ? (
                 <div className="mini-list">
                   <div className="mini-row usage-today-row">
                     <div className="row align-items-center">
-                      <div className="col-6">Tokens</div>
+                      <div className="col-6">{t("Tokens")}</div>
                       <div className="col-6 text-end">
                         {usageSummary.tokens}
                       </div>
@@ -2882,7 +2907,7 @@ export function ClientSummaryPage() {
                   </div>
                   <div className="mini-row usage-today-row">
                     <div className="row align-items-center">
-                      <div className="col-6">Coste USD</div>
+                      <div className="col-6">{t("Coste USD")}</div>
                       <div className="col-6 text-end">
                         {formatUsdWithEur(usageSummary.costUsd)}
                       </div>
@@ -2890,14 +2915,14 @@ export function ClientSummaryPage() {
                   </div>
                 </div>
               ) : (
-                <div className="muted">Sin datos de uso.</div>
+                <div className="muted">{t("Sin datos de uso.")}</div>
               )}
             </div>
 
             <div className="card">
               <div>
-                <h2>Logs de uso</h2>
-                <p className="muted">Últimos eventos de consumo.</p>
+                <h2>{t("Logs de uso")}</h2>
+                <p className="muted">{t("Últimos eventos de consumo.")}</p>
               </div>
 
               <div className="mini-list usage-logs-list">
@@ -2910,11 +2935,15 @@ export function ClientSummaryPage() {
                           {event.serviceCode
                             ? serviceOverviewMap.get(event.serviceCode)?.name ||
                               event.serviceCode
-                            : "general"}
+                            : t("general")}
                         </div>
                       </div>
                       <div className="col-6 text-end">
-                        <div>{event.tokensIn + event.tokensOut} tokens</div>
+                        <div>
+                          {t("{count} tokens", {
+                            count: event.tokensIn + event.tokensOut,
+                          })}
+                        </div>
                         <div className="muted">
                           {formatUsdWithEur(event.costUsd)}
                         </div>
@@ -2929,16 +2958,18 @@ export function ClientSummaryPage() {
                 ))}
               </div>
               {usageEvents.length === 0 && (
-                <div className="muted">Sin eventos de uso.</div>
+                <div className="muted">{t("Sin eventos de uso.")}</div>
               )}
               <a className="btn primary" href={`/clients/${tenantId}/usage`}>
-                Ver Usage
+                {t("Ver Usage")}
               </a>
             </div>
 
             <div className="card">
-              <h2>Auditoría</h2>
-              <p className="muted tight">Eventos de auditoría más recientes.</p>
+              <h2>{t("Auditoría")}</h2>
+              <p className="muted tight">
+                {t("Eventos de auditoría más recientes.")}
+              </p>
               <div className="audit-list audit-list-scroll">
                 {auditEvents.map((event) => (
                   <div className="audit-item" key={event.id}>
@@ -2955,17 +2986,17 @@ export function ClientSummaryPage() {
                 ))}
               </div>
               {auditEvents.length === 0 && (
-                <div className="muted">Sin auditoría.</div>
+                <div className="muted">{t("Sin auditoría.")}</div>
               )}
             </div>
 
             <div className="card">
-              <h2>Observability</h2>
+              <h2>{t("Observability")}</h2>
               <p className="muted tight">
-                Salud del provider, endpoints y alertas activas del tenant.
+                {t("Salud del provider, endpoints y alertas activas del tenant.")}
               </p>
               <a className="btn primary" href={`/clients/${tenantId}/observability`}>
-                Ver observability
+                {t("Ver observability")}
               </a>
             </div>
           </section>
@@ -2976,10 +3007,11 @@ export function ClientSummaryPage() {
         <div className="card full-width">
           <div className="card-header">
             <div>
-              <h2>Configuración del tenant</h2>
+              <h2>{t("Configuración del tenant")}</h2>
               <p className="muted ">
-                Providers, política, pricing, suscripción y facturación
-                agrupados en un acordeón.
+                {t(
+                  "Providers, política, pricing, suscripción y facturación agrupados en un acordeón.",
+                )}
               </p>
             </div>
           </div>
@@ -3000,9 +3032,9 @@ export function ClientSummaryPage() {
                   aria-controls="tenant-acc-collapse-1"
                 >
                   <span className="accordion-title-group">
-                    <span className="accordion-title">Providers</span>
+                    <span className="accordion-title">{t("Providers")}</span>
                     <span className="accordion-desc muted">
-                      Proveedores registrados para este tenant.
+                      {t("Proveedores registrados para este tenant.")}
                     </span>
                   </span>
                 </button>
@@ -3023,7 +3055,7 @@ export function ClientSummaryPage() {
                         className="btn primary"
                         onClick={openProviderModal}
                       >
-                        Añadir provider
+                        {t("Añadir provider")}
                       </button>
                     )}
                   </div>
@@ -3034,22 +3066,24 @@ export function ClientSummaryPage() {
                         <span>{provider.type}</span>
                         <button
                           className="link"
-                          onClick={() => handleCopy(provider.id, "Provider ID")}
+                          onClick={() =>
+                            handleCopy(provider.id, t("Provider ID"))
+                          }
                         >
-                          Copiar ID
+                          {t("Copiar ID")}
                         </button>
                         <span
                           className={`status ${
                             provider.enabled ? "active" : "disabled"
                           }`}
                         >
-                          {provider.enabled ? "active" : "disabled"}
+                          {provider.enabled ? t("active") : t("disabled")}
                         </span>
                       </div>
                     ))}
                   </div>
                   {providers.length === 0 && (
-                    <div className="muted">Sin providers.</div>
+                    <div className="muted">{t("Sin providers.")}</div>
                   )}
                 </div>
               </div>
@@ -3071,9 +3105,9 @@ export function ClientSummaryPage() {
                   aria-controls="tenant-acc-collapse-2"
                 >
                   <span className="accordion-title-group">
-                    <span className="accordion-title">Políticas</span>
+                    <span className="accordion-title">{t("Políticas")}</span>
                     <span className="accordion-desc muted">
-                      Límites configurados para este tenant.
+                      {t("Límites configurados para este tenant.")}
                     </span>
                   </span>
                 </button>
@@ -3091,31 +3125,35 @@ export function ClientSummaryPage() {
                     <div></div>
                     {canManagePolicies && (
                       <button className="btn primary" onClick={openPolicyModal}>
-                        {policy ? "Editar política" : "Crear política"}
+                        {policy ? t("Editar política") : t("Crear política")}
                       </button>
                     )}
                   </div>
                   {policy ? (
                     <div className="mini-list">
                       <div className="mini-row">
-                        <span>Req/min</span>
+                        <span>{t("Req/min")}</span>
                         <span>{policy.maxRequestsPerMinute}</span>
                       </div>
                       <div className="mini-row">
-                        <span>Tokens/día</span>
+                        <span>{t("Tokens/día")}</span>
                         <span>{policy.maxTokensPerDay}</span>
                       </div>
                       <div className="mini-row">
-                        <span>Coste diario (USD/EUR)</span>
+                        <span>{t("Coste diario (USD/EUR)")}</span>
                         <span>{formatUsdWithEur(policy.maxCostPerDayUsd)}</span>
                       </div>
                       <div className="mini-row">
-                        <span>Redacción</span>
-                        <span>{policy.redactionEnabled ? "ON" : "OFF"}</span>
+                        <span>{t("Redacción")}</span>
+                        <span>
+                          {policy.redactionEnabled ? t("ON") : t("OFF")}
+                        </span>
                       </div>
                     </div>
                   ) : (
-                    <div className="muted">No hay política configurada.</div>
+                    <div className="muted">
+                      {t("No hay política configurada.")}
+                    </div>
                   )}
                 </div>
               </div>
@@ -3137,10 +3175,10 @@ export function ClientSummaryPage() {
                   aria-controls="tenant-acc-collapse-3"
                 >
                   <span className="accordion-title-group">
-                    <span className="accordion-title">Pricing asociado</span>
+                    <span className="accordion-title">{t("Pricing asociado")}</span>
                     {!(isTenant && pricingSelection.length === 0) && (
                       <span className="accordion-desc muted">
-                        Selecciona los modelos que aplican a este cliente.
+                        {t("Selecciona los modelos que aplican a este cliente.")}
                       </span>
                     )}
                   </span>
@@ -3162,12 +3200,12 @@ export function ClientSummaryPage() {
                         className="btn primary"
                         onClick={openPricingModal}
                       >
-                        Crear pricing
+                        {t("Crear pricing")}
                       </button>
                     )}
                   </div>
                   {isTenant && pricingSelection.length === 0 ? (
-                    <div className="muted">No hay pricing asociado.</div>
+                    <div className="muted">{t("No hay pricing asociado.")}</div>
                   ) : (
                     <div className="form-grid">
                       {!isTenant && (
@@ -3176,7 +3214,7 @@ export function ClientSummaryPage() {
                             options={pricingOptions}
                             selected={pricingSelection}
                             disabled={!canManagePricing}
-                            placeholder="Selecciona pricing"
+                            placeholder={t("Selecciona pricing")}
                             maxHeight={260}
                             onChange={handlePricingSelectionChange}
                           />
@@ -3206,14 +3244,14 @@ export function ClientSummaryPage() {
                             onClick={handleSavePricing}
                             disabled={saving}
                           >
-                            Guardar pricings
+                            {t("Guardar pricings")}
                           </button>
                         </div>
                       )}
                     </div>
                   )}
                   {pricing.length === 0 && !isTenant && (
-                    <div className="muted">Sin pricing.</div>
+                    <div className="muted">{t("Sin pricing.")}</div>
                   )}
                 </div>
               </div>
@@ -3235,9 +3273,9 @@ export function ClientSummaryPage() {
                   aria-controls="tenant-acc-collapse-4"
                 >
                   <span className="accordion-title-group">
-                    <span className="accordion-title">Suscripción</span>
+                    <span className="accordion-title">{t("Suscripción")}</span>
                     <span className="accordion-desc muted">
-                      Gestión de tarifa base y servicios incluidos.
+                      {t("Gestión de tarifa base y servicios incluidos.")}
                     </span>
                   </span>
                 </button>
@@ -3262,22 +3300,22 @@ export function ClientSummaryPage() {
                     )}
                   </div>
                   {subscriptionCreating ? (
-                    <LoaderComponent label="Procesando suscripción..." />
+                    <LoaderComponent label={t("Procesando suscripción...")} />
                   ) : (
                     <>
                       {!subscription && (
                         <>
                           <div className="muted">
-                            Este cliente aún no tiene suscripción.
+                            {t("Este cliente aún no tiene suscripción.")}
                             {canManageSubscription
-                              ? " Puedes crearla desde aquí."
-                              : " Contacta con un administrador para crearla."}
+                              ? t(" Puedes crearla desde aquí.")
+                              : t(" Contacta con un administrador para crearla.")}
                           </div>
                           {canManageSubscription && (
                             <div className="info-banner">
-                              Para crear la suscripción necesitas email de
-                              facturación, una API key activa y un precio base
-                              mayor que 0.
+                              {t(
+                                "Para crear la suscripción necesitas email de facturación, una API key activa y un precio base mayor que 0.",
+                              )}
                             </div>
                           )}
                         </>
@@ -3285,11 +3323,11 @@ export function ClientSummaryPage() {
                       {subscription && (
                         <div className="mini-list">
                           <div className="mini-row">
-                            <span>Periodo</span>
+                            <span>{t("Periodo")}</span>
                             <span>{subscription.period}</span>
                           </div>
                           <div className="mini-row">
-                            <span>Inicio</span>
+                            <span>{t("Inicio")}</span>
                             <span>
                               {new Date(
                                 subscription.currentPeriodStart,
@@ -3297,7 +3335,7 @@ export function ClientSummaryPage() {
                             </span>
                           </div>
                           <div className="mini-row">
-                            <span>Renovación</span>
+                            <span>{t("Renovación")}</span>
                             <span>
                               {new Date(
                                 subscription.currentPeriodEnd,
@@ -3305,7 +3343,7 @@ export function ClientSummaryPage() {
                             </span>
                           </div>
                           <div className="mini-row">
-                            <span>Base</span>
+                            <span>{t("Base")}</span>
                             <span>
                               {formatEur(
                                 Number(subscription.basePriceEur || 0),
@@ -3314,7 +3352,7 @@ export function ClientSummaryPage() {
                           </div>
                           {subscriptionSummary?.totals && (
                             <div className="mini-row">
-                              <span>Total actual</span>
+                              <span>{t("Total actual")}</span>
                               <span>
                                 {formatEur(subscriptionSummary.totals.totalEur)}
                               </span>
@@ -3339,30 +3377,33 @@ export function ClientSummaryPage() {
                         <div className="form-grid">
                           {!tenant?.billingEmail && (
                             <div className="info-banner full-row">
-                              Debes definir un email de facturación en el tenant
-                              para poder activar la suscripción.
+                              {t(
+                                "Debes definir un email de facturación en el tenant para poder activar la suscripción.",
+                              )}
                             </div>
                           )}
                           {!hasTenantApiKey && (
                             <div className="info-banner full-row">
-                              Necesitas una API key activa para asignar
-                              servicios o crear una suscripción.
+                              {t(
+                                "Necesitas una API key activa para asignar servicios o crear una suscripción.",
+                              )}
                             </div>
                           )}
                           {subscription?.cancelAtPeriodEnd &&
                             !canReactivateSubscription && (
                               <div className="info-banner full-row">
-                                La suscripción ya ha finalizado y no se puede
-                                reactivar.
+                                {t(
+                                  "La suscripción ya ha finalizado y no se puede reactivar.",
+                                )}
                               </div>
                             )}
                           <div className="subscription-controls mt-3 mb-4 full-row">
                             <div className="subscription-label-row">
                               <span className="subscription-label">
-                                Periodo
+                                {t("Periodo")}
                               </span>
                               <span className="subscription-label">
-                                Base € (mensual o anual según periodo)
+                                {t("Base € (mensual o anual según periodo)")}
                               </span>
                               <span className="subscription-label" />
                             </div>
@@ -3379,8 +3420,8 @@ export function ClientSummaryPage() {
                                   }))
                                 }
                               >
-                                <option value="monthly">monthly</option>
-                                <option value="annual">annual</option>
+                                <option value="monthly">{t("monthly")}</option>
+                                <option value="annual">{t("annual")}</option>
                               </select>
                               <input
                                 type="number"
@@ -3406,7 +3447,7 @@ export function ClientSummaryPage() {
                                     }))
                                   }
                                 />
-                                Cancelar al final del periodo
+                                {t("Cancelar al final del periodo")}
                               </label>
                             </div>
                           </div>
@@ -3426,8 +3467,8 @@ export function ClientSummaryPage() {
                               }
                             >
                               {subscription
-                                ? "Guardar suscripción"
-                                : "Revisar y confirmar"}
+                                ? t("Guardar suscripción")
+                                : t("Revisar y confirmar")}
                             </button>
                             {subscription && (
                               <>
@@ -3441,7 +3482,7 @@ export function ClientSummaryPage() {
                                     subscription.cancelAtPeriodEnd
                                   }
                                 >
-                                  Cancelar al final
+                                  {t("Cancelar al final")}
                                 </button>
                                 {subscription.cancelAtPeriodEnd && (
                                   <button
@@ -3452,7 +3493,7 @@ export function ClientSummaryPage() {
                                       !canReactivateSubscription
                                     }
                                   >
-                                    Reactivar
+                                    {t("Reactivar")}
                                   </button>
                                 )}
                                 <button
@@ -3462,7 +3503,7 @@ export function ClientSummaryPage() {
                                   }
                                   disabled={subscriptionBusy}
                                 >
-                                  Dar de baja
+                                  {t("Dar de baja")}
                                 </button>
                                 {canDeleteSubscription && (
                                   <button
@@ -3470,7 +3511,7 @@ export function ClientSummaryPage() {
                                     onClick={handleDeleteSubscription}
                                     disabled={subscriptionBusy}
                                   >
-                                    Eliminar suscripción
+                                    {t("Eliminar suscripción")}
                                   </button>
                                 )}
                               </>
@@ -3481,14 +3522,15 @@ export function ClientSummaryPage() {
                       {subscription && !canManageSubscription && (
                         <div className="form-grid">
                           <div className="info-banner full-row">
-                            No tienes permisos para modificar la suscripción.
-                            Puedes solicitar la cancelación al final del
-                            periodo si lo necesitas.
+                            {t(
+                              "No tienes permisos para modificar la suscripción. Puedes solicitar la cancelación al final del periodo si lo necesitas.",
+                            )}
                           </div>
                           {subscription.cancelAtPeriodEnd && (
                             <div className="info-banner full-row">
-                              Esta suscripción ya está marcada para cancelarse
-                              al final del periodo actual.
+                              {t(
+                                "Esta suscripción ya está marcada para cancelarse al final del periodo actual.",
+                              )}
                             </div>
                           )}
                           {subscription.cancelAtPeriodEnd &&
@@ -3507,7 +3549,7 @@ export function ClientSummaryPage() {
                                 subscription.cancelAtPeriodEnd
                               }
                             >
-                              Cancelar al final
+                              {t("Cancelar al final")}
                             </button>
                             {subscription.cancelAtPeriodEnd && (
                               <button
@@ -3518,7 +3560,7 @@ export function ClientSummaryPage() {
                                   !canReactivateSubscription
                                 }
                               >
-                                Reactivar
+                                {t("Reactivar")}
                               </button>
                             )}
                           </div>
@@ -3918,23 +3960,23 @@ export function ClientSummaryPage() {
           <div className="card full-width">
             <div className="card-header">
               <div>
-                <h2>Servicios asignados</h2>
+                <h2>{t("Servicios asignados")}</h2>
                 <p className="muted">
-                  Configura parámetros y, si aplica, endpoints de cada servicio.
-                  Para gestionar un servicio, pulse en "Gestionar" para abrir la
-                  página detalles del servicio.
+                  {t(
+                    "Configura parámetros y, si aplica, endpoints de cada servicio. Para gestionar un servicio, pulse en \"Gestionar\" para abrir la página detalles del servicio.",
+                  )}
                 </p>
               </div>
             </div>
             {contractedServices.length === 0 ? (
-              <div className="muted">Sin servicios asignados.</div>
+              <div className="muted">{t("Sin servicios asignados.")}</div>
             ) : (
               <DataTable
                 columns={[
-                  { key: "name", label: "Servicio", sortable: true },
+                  { key: "name", label: t("Servicio"), sortable: true },
                   {
                     key: "price",
-                    label: "Precio",
+                    label: t("Precio"),
                     sortable: true,
                     render: (service: TenantServiceOverview) =>
                       formatEur(
@@ -3945,7 +3987,7 @@ export function ClientSummaryPage() {
                   },
                   {
                     key: "subscriptionStatus",
-                    label: "Estado",
+                    label: t("Estado"),
                     sortable: true,
                     render: (service: TenantServiceOverview) => {
                       const status = service.subscriptionStatus || "disabled";
@@ -3957,9 +3999,9 @@ export function ClientSummaryPage() {
                         : null;
                       const label =
                         status === "pending"
-                          ? `pendiente${activateAt ? ` · ${activateAt}` : ""}`
+                          ? `${t("pendiente")}${activateAt ? ` · ${activateAt}` : ""}`
                           : status === "pending_removal"
-                            ? `baja pendiente${deactivateAt ? ` · ${deactivateAt}` : ""}`
+                            ? `${t("baja pendiente")}${deactivateAt ? ` · ${deactivateAt}` : ""}`
                             : status;
                       return (
                         <StatusBadgeIcon
@@ -3971,7 +4013,7 @@ export function ClientSummaryPage() {
                   },
                   {
                     key: "configScope",
-                    label: "LLM",
+                    label: t("LLM"),
                     render: (service: TenantServiceOverview) => {
                       const hasOverride = Boolean(
                         service.providerId ||
@@ -3982,14 +4024,14 @@ export function ClientSummaryPage() {
                         <span
                           className={`pill ${hasOverride ? "pill-alt" : ""}`}
                         >
-                          {hasOverride ? "Override" : "Global"}
+                          {hasOverride ? t("Override") : t("Global")}
                         </span>
                       );
                     },
                   },
                   {
                     key: "configStatus",
-                    label: "Operativo",
+                    label: t("Operativo"),
                     sortable: true,
                     render: (service: TenantServiceOverview) => (
                       <span
@@ -4000,30 +4042,30 @@ export function ClientSummaryPage() {
                         }`}
                       >
                         {service.configStatus === "suspended"
-                          ? "suspendido"
-                          : "activo"}
+                          ? t("suspendido")
+                          : t("activo")}
                       </span>
                     ),
                   },
                   {
                     key: "userCount",
-                    label: "Usuarios",
+                    label: t("Usuarios"),
                     sortable: true,
                     render: (service: TenantServiceOverview) =>
-                      `${service.userCount} usuarios`,
+                      t("{count} usuarios", { count: service.userCount }),
                   },
                   {
                     key: "endpointCount",
-                    label: "Endpoints",
+                    label: t("Endpoints"),
                     sortable: true,
                     render: (service: TenantServiceOverview) =>
                       service.endpointsEnabled !== false
-                        ? `${service.endpointCount} endpoints`
-                        : "No aplica",
+                        ? t("{count} endpoints", { count: service.endpointCount })
+                        : t("No aplica"),
                   },
                   {
                     key: "actions",
-                    label: "Acciones",
+                    label: t("Acciones"),
                     render: (service: TenantServiceOverview) => (
                       <div className="row-actions">
                         {canManageServices && (
@@ -4036,7 +4078,7 @@ export function ClientSummaryPage() {
                               )
                             }
                           >
-                            Gestionar
+                            {t("Gestionar")}
                           </button>
                         )}
                         {canManageSubscription && (
@@ -4046,7 +4088,7 @@ export function ClientSummaryPage() {
                             onClick={() => handleUnassignService(service)}
                             disabled={serviceRemoveBusy}
                           >
-                            Desasignar
+                            {t("Desasignar")}
                           </button>
                         )}
                         {canDeleteServiceAssignment && (
@@ -4058,7 +4100,7 @@ export function ClientSummaryPage() {
                             }
                             disabled={serviceRemoveBusy}
                           >
-                            Eliminar
+                            {t("Eliminar")}
                           </button>
                         )}
                       </div>
@@ -4075,11 +4117,11 @@ export function ClientSummaryPage() {
           <div className="card full-width">
             <div className="card-header">
               <div>
-                <h2>Usuarios de chat</h2>
+                <h2>{t("Usuarios de chat")}</h2>
                 <p className="muted">
-                  Gestiona todos los usuarios creados para todos los servicios.
-                  Para ver los de un servicio concreto, es necesario ir a la
-                  página de ese servicio.
+                  {t(
+                    "Gestiona todos los usuarios creados para todos los servicios. Para ver los de un servicio concreto, es necesario ir a la página de ese servicio.",
+                  )}
                 </p>
               </div>
             </div>
@@ -4091,7 +4133,7 @@ export function ClientSummaryPage() {
               filterKeys={["name", "email", "status"]}
             />
             {chatUsers.length === 0 && (
-              <div className="muted">Sin usuarios creados.</div>
+              <div className="muted">{t("Sin usuarios creados.")}</div>
             )}
           </div>
         </>
@@ -4108,32 +4150,33 @@ export function ClientSummaryPage() {
           >
             <div className="modal-header">
               <div>
-                <div className="eyebrow">Servicios</div>
-                <h3>Asignar servicios</h3>
+                <div className="eyebrow">{t("Servicios")}</div>
+                <h3>{t("Asignar servicios")}</h3>
               </div>
               <button
                 className="btn"
                 onClick={() => setAssignServicesModalOpen(false)}
               >
-                Cerrar
+                {t("Cerrar")}
               </button>
             </div>
             <div className="modal-body">
               <div>
-                <h3>Anexo de servicio</h3>
+                <h3>{t("Anexo de servicio")}</h3>
                 <p className="muted">
-                  Añade un servicio a la suscripción. El importe se reflejará en
-                  la factura de la suscripción.
+                  {t(
+                    "Añade un servicio a la suscripción. El importe se reflejará en la factura de la suscripción.",
+                  )}
                 </p>
               </div>
               {!subscription && (
                 <div className="muted">
-                  Crea una suscripción para añadir servicios.
+                  {t("Crea una suscripción para añadir servicios.")}
                 </div>
               )}
               {subscription && !canManageSubscription && (
                 <div className="muted">
-                  No tienes permisos para gestionar servicios.
+                  {t("No tienes permisos para gestionar servicios.")}
                 </div>
               )}
               {subscription && canManageSubscription && (
@@ -4148,14 +4191,14 @@ export function ClientSummaryPage() {
                   ) : (
                     <div className="form-grid">
                       <label className="full-row">
-                        Servicio a añadir
+                        {t("Servicio a añadir")}
                         <select
                           value={addonServiceCode}
                           onChange={(event) =>
                             setAddonServiceCode(event.target.value)
                           }
                         >
-                          <option value="">Selecciona un servicio</option>
+                          <option value="">{t("Selecciona un servicio")}</option>
                           {addonSelectOptions.map((service) => (
                             <option
                               key={service.serviceCode}
@@ -4168,7 +4211,7 @@ export function ClientSummaryPage() {
                                   : service.priceMonthlyEur,
                               )}
                               {service.subscriptionStatus === "pending_removal"
-                                ? " · restaurar"
+                                ? t(" · restaurar")
                                 : ""}
                             </option>
                           ))}
@@ -4176,14 +4219,14 @@ export function ClientSummaryPage() {
                       </label>
                       {addonAlreadyAdded && (
                         <div className="info-banner full-row">
-                          Este servicio ya está añadido a la suscripción.
+                          {t("Este servicio ya está añadido a la suscripción.")}
                         </div>
                       )}
                       {addonService?.endpointsEnabled !== false && (
                         <div className="info-banner full-row">
-                          Este servicio requiere endpoints. Para activar
-                          endpoints insert es obligatorio configurar los
-                          endpoints tras la contratación.
+                          {t(
+                            "Este servicio requiere endpoints. Para activar endpoints insert es obligatorio configurar los endpoints tras la contratación.",
+                          )}
                         </div>
                       )}
                       <div className="form-actions">
@@ -4447,7 +4490,9 @@ export function ClientSummaryPage() {
                         systemPrompt: event.target.value,
                       }))
                     }
-                    placeholder="Define el estilo del asistente, tono y reglas..."
+                    placeholder={t(
+                      "Define el estilo del asistente, tono y reglas...",
+                    )}
                   />
                 </label>
                 <label>
@@ -4521,15 +4566,24 @@ export function ClientSummaryPage() {
 
               <div className="section-divider" />
 
-              <h4>Prueba runtime del servicio</h4>
+              <h4>
+                <span className="label-with-tooltip">
+                  {t("Prueba runtime del servicio")}
+                  <InfoTooltip
+                    text={t(
+                      "Ejecuta una petición de prueba con el provider y modelo seleccionados. Usa la API key del tenant y muestra la respuesta cruda del runtime para validar credenciales, configuración y conexión.",
+                    )}
+                  />
+                </span>
+              </h4>
               {!hasTenantApiKey && (
                 <div className="info-banner">
-                  Necesitas una API key activa para ejecutar el runtime.
+                  {t("Necesitas una API key activa para ejecutar runtime.")}
                 </div>
               )}
               <div className="form-grid">
                 <label>
-                  Provider
+                  {t("Provider")}
                   <select
                     value={
                       serviceConfigDraft.providerId ||
@@ -4543,7 +4597,7 @@ export function ClientSummaryPage() {
                     }
                     disabled={!hasTenantApiKey}
                   >
-                    <option value="">Selecciona provider</option>
+                    <option value="">{t("Selecciona provider")}</option>
                     {providers.map((provider) => (
                       <option key={provider.id} value={provider.id}>
                         {provider.displayName} · {provider.type}
@@ -4552,7 +4606,7 @@ export function ClientSummaryPage() {
                   </select>
                 </label>
                 <label>
-                  Modelo
+                  {t("Modelo")}
                   <input
                     value={serviceRuntimeForm.model}
                     onChange={(event) =>
@@ -4566,7 +4620,7 @@ export function ClientSummaryPage() {
                   />
                 </label>
                 <label className="full-row">
-                  Payload JSON
+                  {t("Payload JSON")}
                   <textarea
                     value={serviceRuntimeForm.payload}
                     onChange={(event) =>
@@ -4587,10 +4641,10 @@ export function ClientSummaryPage() {
                   onClick={handleServiceRuntimeTest}
                   disabled={serviceRuntimeBusy || !hasTenantApiKey}
                 >
-                  Ejecutar runtime
+                  {t("Ejecutar runtime")}
                 </button>
                 {serviceRuntimeBusy && (
-                  <span className="muted">Ejecutando...</span>
+                  <span className="muted">{t("Ejecutando...")}</span>
                 )}
               </div>
               {serviceRuntimeError && (
@@ -4905,7 +4959,7 @@ export function ClientSummaryPage() {
                           name: event.target.value,
                         }))
                       }
-                      placeholder="María López"
+                      placeholder={t("María López")}
                     />
                   </label>
                   <label>
@@ -4918,7 +4972,7 @@ export function ClientSummaryPage() {
                           email: event.target.value,
                         }))
                       }
-                      placeholder="usuario@cliente.com"
+                      placeholder={t("usuario@cliente.com")}
                     />
                   </label>
                   <label>
@@ -5010,7 +5064,7 @@ export function ClientSummaryPage() {
                   <label>
                     Display name
                     <input
-                      placeholder="OpenAI Cliente X"
+                      placeholder={t("OpenAI Cliente X")}
                       value={providerForm.displayName}
                       onChange={(event) =>
                         setProviderForm((prev) => ({
@@ -5406,7 +5460,7 @@ export function ClientSummaryPage() {
                   <label>
                     Provider
                     <input
-                      placeholder="providerType (ej: openai)"
+                      placeholder={t("providerType (ej: openai)")}
                       value={pricingForm.providerType}
                       onChange={(event) =>
                         setPricingForm((prev) => ({
@@ -5419,7 +5473,7 @@ export function ClientSummaryPage() {
                   <label>
                     Modelo
                     <input
-                      placeholder="model (ej: gpt-4o-mini)"
+                      placeholder={t("model (ej: gpt-4o-mini)")}
                       value={pricingForm.model}
                       onChange={(event) =>
                         setPricingForm((prev) => ({
@@ -5506,7 +5560,7 @@ export function ClientSummaryPage() {
                   <input
                     value={newApiKeyName}
                     onChange={(event) => setNewApiKeyName(event.target.value)}
-                    placeholder="API producción"
+                    placeholder={t("API producción")}
                   />
                 </label>
                 <div className="muted">

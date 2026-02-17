@@ -7,9 +7,11 @@ import { StatusBadgeIcon } from '../components/StatusBadgeIcon';
 import { PageWithDocs } from '../components/PageWithDocs';
 import type { AdminSubscriptionSummary } from '../types';
 import { formatEur } from '../utils/currency';
+import { useI18n } from '../i18n/I18nProvider';
 
 export function AdminSubscriptionsPage() {
   const { role, loading } = useAuth();
+  const { t } = useI18n();
   const [rows, setRows] = useState<AdminSubscriptionSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,11 +21,11 @@ export function AdminSubscriptionsPage() {
         const list = await api.listAdminSubscriptions();
         setRows(list as AdminSubscriptionSummary[]);
       } catch (err: any) {
-        setError(err.message || 'Error cargando suscripciones');
+        setError(err.message || t('Error cargando suscripciones'));
       }
     };
     load();
-  }, []);
+  }, [t]);
 
   const handleApprove = async (tenantId: string) => {
     try {
@@ -31,14 +33,14 @@ export function AdminSubscriptionsPage() {
       const list = await api.listAdminSubscriptions();
       setRows(list as AdminSubscriptionSummary[]);
     } catch (err: any) {
-      setError(err.message || 'Error aprobando pago');
+      setError(err.message || t('Error aprobando pago'));
     }
   };
 
   if (loading) {
     return (
       <PageWithDocs slug="settings">
-        <div className="muted">Cargando...</div>
+        <div className="muted">{t('Cargando...')}</div>
       </PageWithDocs>
     );
   }
@@ -46,7 +48,7 @@ export function AdminSubscriptionsPage() {
   if (role !== 'admin') {
     return (
       <PageWithDocs slug="settings">
-        <div className="muted">Solo los administradores pueden ver esta página.</div>
+        <div className="muted">{t('Solo los administradores pueden ver esta página.')}</div>
       </PageWithDocs>
     );
   }
@@ -54,7 +56,7 @@ export function AdminSubscriptionsPage() {
   const columns: DataTableColumn<AdminSubscriptionSummary>[] = [
     {
       key: 'tenantName',
-      label: 'Cliente',
+      label: t('Cliente'),
       sortable: true,
       render: (row) => (
         <Link className="link" to={`/clients/${row.tenantId}`}>
@@ -64,7 +66,7 @@ export function AdminSubscriptionsPage() {
     },
     {
       key: 'status',
-      label: 'Estado',
+      label: t('Estado'),
       sortable: true,
       render: (row) => (
         <StatusBadgeIcon status={row.subscription?.status || 'disabled'} />
@@ -72,37 +74,37 @@ export function AdminSubscriptionsPage() {
     },
     {
       key: 'period',
-      label: 'Periodo',
+      label: t('Periodo'),
       sortable: true,
       render: (row) => row.subscription?.period || '-'
     },
     {
       key: 'currentTotalEur',
-      label: 'Cuota actual',
+      label: t('Cuota actual'),
       sortable: true,
       render: (row) => formatEur(row.currentTotalEur || 0)
     },
     {
       key: 'billedSinceStartEur',
-      label: 'Gastado (actual)',
+      label: t('Gastado (actual)'),
       sortable: true,
       render: (row) => formatEur(row.billedSinceStartEur || 0)
     },
     {
       key: 'historyTotalEur',
-      label: 'Gastado histórico',
+      label: t('Gastado histórico'),
       sortable: true,
       render: (row) => formatEur(row.historyTotalEur || 0)
     },
     {
       key: 'total',
-      label: 'Acumulado',
+      label: t('Acumulado'),
       sortable: true,
       render: (row) => formatEur((row.billedSinceStartEur || 0) + (row.historyTotalEur || 0))
     },
     {
       key: 'actions',
-      label: 'Acciones',
+      label: t('Acciones'),
       render: (row) => (
         <div className="icon-actions">
           {row.subscription?.status === 'pending' && (
@@ -111,7 +113,7 @@ export function AdminSubscriptionsPage() {
               type="button"
               onClick={() => handleApprove(row.tenantId)}
             >
-              Aprobar (mock)
+              {t('Aprobar (mock)')}
             </button>
           )}
         </div>
@@ -124,10 +126,11 @@ export function AdminSubscriptionsPage() {
       <section className="grid">
         {error && <div className="error-banner full-row">{error}</div>}
         <div className="card full-row">
-          <h2>Suscripciones</h2>
+          <h2>{t('Suscripciones')}</h2>
           <p className="muted">
-            Importe de cuotas desde el inicio de la suscripción actual y el histórico si
-            hubo interrupciones.
+            {t(
+              'Importe de cuotas desde el inicio de la suscripción actual y el histórico si hubo interrupciones.',
+            )}
           </p>
           <DataTable
             columns={columns}

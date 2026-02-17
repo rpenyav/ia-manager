@@ -6,8 +6,10 @@ import { PageWithDocs } from "../components/PageWithDocs";
 import { formatEur } from "../utils/currency";
 import { emitToast } from "../toast";
 import Swal from "sweetalert2";
+import { useI18n } from "../i18n/I18nProvider";
 
 export function ServicesPage() {
+  const { t } = useI18n();
   const [services, setServices] = useState<ServiceCatalogItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -20,11 +22,11 @@ export function ServicesPage() {
         setServices(list as ServiceCatalogItem[]);
         setError(null);
       } catch (err: any) {
-        setError(err.message || "Error cargando servicios");
+        setError(err.message || t("Error cargando servicios"));
       }
     };
     load();
-  }, []);
+  }, [t]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -48,10 +50,12 @@ export function ServicesPage() {
       setServices((prev) =>
         prev.map((item) => (item.id === service.id ? updated : item)),
       );
-      emitToast(service.enabled ? "Servicio desactivado" : "Servicio activado");
+      emitToast(
+        service.enabled ? t("Servicio desactivado") : t("Servicio activado"),
+      );
       setError(null);
     } catch (err: any) {
-      setError(err.message || "Error actualizando servicio");
+      setError(err.message || t("Error actualizando servicio"));
     } finally {
       setBusyId(null);
     }
@@ -59,12 +63,14 @@ export function ServicesPage() {
 
   const handleDelete = async (service: ServiceCatalogItem) => {
     const result = await Swal.fire({
-      title: "Eliminar servicio",
-      text: `¿Eliminar ${service.name}? Esta acción es irreversible.`,
+      title: t("Eliminar servicio"),
+      text: t("¿Eliminar {name}? Esta acción es irreversible.", {
+        name: service.name,
+      }),
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Eliminar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("Eliminar"),
+      cancelButtonText: t("Cancelar"),
     });
     if (!result.isConfirmed) {
       return;
@@ -73,10 +79,10 @@ export function ServicesPage() {
       setBusyId(service.id);
       await api.deleteServiceCatalog(service.id);
       setServices((prev) => prev.filter((item) => item.id !== service.id));
-      emitToast("Servicio eliminado");
+      emitToast(t("Servicio eliminado"));
       setError(null);
     } catch (err: any) {
-      setError(err.message || "Error eliminando servicio");
+      setError(err.message || t("Error eliminando servicio"));
     } finally {
       setBusyId(null);
     }
@@ -89,36 +95,36 @@ export function ServicesPage() {
         <div className="card">
           <div className="card-header">
             <div>
-              <h2>Servicios</h2>
+              <h2>{t("Servicios")}</h2>
               <p className="muted">
-                Catálogo de servicios disponibles para clientes.
+                {t("Catálogo de servicios disponibles para clientes.")}
               </p>
             </div>
             <div className="card-header-actions">
               <Link className="btn" to="/">
-                Volver
+                {t("Volver")}
               </Link>
               <Link className="btn primary" to="/services/new">
-                Crear servicio
+                {t("Crear servicio")}
               </Link>
             </div>
           </div>
           <div className="data-table-controls">
             <input
-              placeholder="Buscar por nombre o código"
+              placeholder={t("Buscar por nombre o código")}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
           <div className="table table-services">
             <div className="table-header">
-              <span>Servicio</span>
-              <span>Código</span>
-              <span>Precio mensual</span>
-              <span>Precio anual</span>
-              <span>Endpoints</span>
-              <span>Estado</span>
-              <span>Acciones</span>
+              <span>{t("Servicio")}</span>
+              <span>{t("Código")}</span>
+              <span>{t("Precio mensual")}</span>
+              <span>{t("Precio anual")}</span>
+              <span>{t("Endpoints")}</span>
+              <span>{t("Estado")}</span>
+              <span>{t("Acciones")}</span>
             </div>
             {filtered.map((service) => (
               <div className="table-row mb-3" key={service.id}>
@@ -130,37 +136,37 @@ export function ServicesPage() {
                 <span>{formatEur(service.priceMonthlyEur)}</span>
                 <span>{formatEur(service.priceAnnualEur)}</span>
                 <span className="muted">
-                  {service.endpointsEnabled !== false ? "sí" : "no"}
+                  {service.endpointsEnabled !== false ? t("sí") : t("no")}
                 </span>
                 <span
                   className={`status ${service.enabled ? "active" : "disabled"}`}
                 >
-                  {service.enabled ? "activo" : "inactivo"}
+                  {service.enabled ? t("activo") : t("inactivo")}
                 </span>
                 <div className="row-actions">
                   <Link className="link" to={`/services/${service.id}`}>
-                    Editar
+                    {t("Editar")}
                   </Link>
                   <button
                     className="link"
                     onClick={() => handleToggle(service)}
                     disabled={busyId === service.id}
                   >
-                    {service.enabled ? "Desactivar" : "Activar"}
+                    {service.enabled ? t("Desactivar") : t("Activar")}
                   </button>
                   <button
                     className="link"
                     onClick={() => handleDelete(service)}
                     disabled={busyId === service.id}
                   >
-                    Eliminar
+                    {t("Eliminar")}
                   </button>
                 </div>
               </div>
             ))}
           </div>
           {filtered.length === 0 && (
-            <div className="muted">No hay servicios disponibles.</div>
+            <div className="muted">{t("No hay servicios disponibles.")}</div>
           )}
         </div>
       </section>
